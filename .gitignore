@@ -1,0 +1,13 @@
+.env
+.env.prod
+.claude
+# Uploads de mídia — ficam no MinIO, não no git
+app/media/
+# Next.js
+app/.next/
+app/node_modules/
+app/out/
+.DS_Store
+
+# Drizzle
+app/db/migrations/meta/_journal.json.bak

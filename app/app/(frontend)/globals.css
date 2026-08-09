@@ -1,0 +1,310 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts are loaded via next/font/google in layout.tsx (self-hosted, no render-blocking request) */
+
+@layer base {
+
+  /* ─── Dark Mode (default) ─────────────────────────────────────── */
+  :root {
+    --background: 160 30% 6%;
+    /* #0B1411 */
+    --foreground: 120 15% 92%;
+    --card: 160 28% 9%;
+    /* #11201A */
+    --card-foreground: 120 15% 90%;
+    --popover: 160 28% 9%;
+    --popover-foreground: 120 15% 90%;
+    --primary: 137 48% 46%;
+    /* #3FAF5C */
+    --primary-foreground: 160 30% 6%;
+    --secondary: 188 60% 45%;
+    /* #2FA8B8 */
+    --secondary-foreground: 160 30% 6%;
+    --muted: 160 22% 14%;
+    --muted-foreground: 160 14% 58%;
+    --accent: 155 18% 42%;
+    /* #5B7F6E */
+    --accent-foreground: 120 15% 92%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 120 15% 92%;
+    --border: 160 32% 17%;
+    /* #1F3A30 */
+    --input: 160 28% 14%;
+    --ring: 137 48% 46%;
+    --radius: 0.5rem;
+  }
+
+  /* ─── Light Mode ─────────────────────────────────────────────── */
+  .light {
+    --background: 120 14% 95%;
+    /* #F2F5F1 */
+    --foreground: 160 30% 8%;
+    --card: 120 14% 92%;
+    /* #E6ECE7 */
+    --card-foreground: 160 30% 8%;
+    --popover: 120 14% 92%;
+    --popover-foreground: 160 30% 8%;
+    --primary: 137 48% 46%;
+    --primary-foreground: 160 30% 6%;
+    --secondary: 188 60% 45%;
+    --secondary-foreground: 160 30% 6%;
+    --muted: 120 14% 88%;
+    /* #CFD8D2 */
+    --muted-foreground: 160 12% 36%;
+    --accent: 155 18% 42%;
+    --accent-foreground: 160 30% 8%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 120 15% 92%;
+    --border: 120 10% 83%;
+    --input: 120 14% 85%;
+    --ring: 137 48% 46%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
+    background-color: hsl(var(--background));
+    min-height: 100dvh;
+  }
+
+  /* ─── Dynamic background breathe ─── */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg,
+        #0B1411 0%,
+        #11201A 40%,
+        #0d1816 70%,
+        #0B1411 100%);
+    background-size: 300% 300%;
+    animation: bg-breathe 35s ease infinite;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .light body::before {
+    background: linear-gradient(135deg, #F2F5F1 0%, #E6ECE7 40%, #EDF1EC 70%, #F2F5F1 100%);
+    background-size: 300% 300%;
+    animation: bg-breathe 35s ease infinite;
+  }
+
+  h1 {
+    @apply font-semibold tracking-tight;
+    font-family: var(--font-fraunces), Georgia, serif;
+  }
+
+  h2,
+  h3 {
+    @apply font-semibold;
+    font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
+  }
+
+  code,
+  pre {
+    @apply tracking-wide;
+    font-family: var(--font-ibm-plex-mono), Menlo, monospace;
+  }
+
+  a {
+    color: hsl(var(--muted-foreground));
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  a:hover {
+    color: hsl(var(--foreground));
+  }
+}
+
+
+/* ─── Croqui do mapa de plantio ─────────────────────────────────────────────
+   O SVG do croqui desenha o plano métrico local. As cores vivem aqui, e não
+   no componente, para acompanharem o tema claro/escuro sem duplicar lógica. */
+@layer base {
+  :root {
+    --fundo-croqui: hsl(160 28% 7%);
+    --cor-malha: hsl(160 32% 17% / 0.55);
+    --cor-area: hsl(137 48% 46% / 0.07);
+    --cor-borda-area: hsl(137 48% 46% / 0.65);
+    --cor-plantio: hsl(137 48% 56%);
+    --cor-entrelinha: hsl(188 60% 55%);
+    --cor-servico: hsl(40 35% 65%);
+
+    /* Barra de ocupação da análise. Validada em contraste contra a superfície
+       de cada tema — o verde da marca reprova em fundo claro (2,34:1). */
+    --cor-ocupacao: hsl(137 48% 56%);
+    --cor-referencia: hsl(160 14% 58%);
+  }
+
+  .light {
+    /* Fundo branco no modo claro: é o croqui impresso, como se pede no papel. */
+    --fundo-croqui: hsl(0 0% 100%);
+    --cor-malha: hsl(120 10% 83% / 0.9);
+    --cor-area: hsl(137 48% 46% / 0.1);
+    --cor-borda-area: hsl(137 48% 34%);
+    --cor-plantio: hsl(137 48% 34%);
+    --cor-entrelinha: hsl(188 60% 32%);
+    --cor-servico: hsl(30 40% 40%);
+
+    --cor-ocupacao: hsl(137 48% 34%);
+    --cor-referencia: hsl(160 12% 36%);
+  }
+}
+
+/* Sobre um mapa de fundo, o desenho precisa de contraste que o fundo vazio não
+   exigia: as cores foram calibradas contra um fundo liso, e sobre foto aérea ou
+   ruas elas somem. Cores mais escuras e saturadas funcionam nos dois casos; o
+   halo branco garante legibilidade sobre imagem escura de satélite; e a malha
+   métrica vira ruído puro sobre o mapa. */
+@layer components {
+  .sobre-mapa {
+    --cor-area: hsl(137 60% 42% / 0.2);
+    --cor-borda-area: hsl(137 75% 26%);
+    --cor-plantio: hsl(137 75% 26%);
+    --cor-entrelinha: hsl(188 75% 24%);
+    --cor-servico: hsl(28 65% 30%);
+    --cor-malha: transparent;
+
+    filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.95));
+  }
+}
+
+@layer utilities {
+
+  /* Scroll-reveal helper – apply via JS intersection observer */
+  .reveal {
+    @apply opacity-0;
+  }
+
+  .reveal.visible {
+    @apply animate-scroll-reveal;
+  }
+
+  /* Bio link underline animation */
+  .bio-link {
+    @apply relative no-underline;
+    color: #2FA8B8;
+  }
+
+  .bio-link::after {
+    content: "";
+    @apply absolute left-0 bottom-0 h-px w-0 transition-[width] duration-200;
+    background-color: #2FA8B8;
+  }
+
+  .bio-link:hover::after {
+    @apply w-full;
+  }
+
+  /* Glow border utility */
+  .glow-border {
+    box-shadow: 0 0 0 1px #3FAF5C, 0 0 14px 0 rgba(63, 175, 92, 0.25);
+  }
+
+  /* Data metric mono style */
+  .metric {
+    @apply font-medium tracking-wide;
+    font-family: var(--font-ibm-plex-mono), Menlo, monospace;
+    color: #3FAF5C;
+  }
+}
+
+/* ─── Prose (Tailwind Typography) overrides ───────────────────── */
+/* Style inline <code> and remove Typography's default backtick quotes. */
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none !important;
+}
+
+.prose :not(pre) > code {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.25rem;
+  padding: 0.1em 0.4em;
+  font-size: 0.875em;
+  font-weight: 400;
+  font-family: var(--font-ibm-plex-mono), Menlo, monospace;
+}
+
+.light .prose :not(pre) > code {
+  color: hsl(188 60% 32%);
+}
+
+/* Prose links use the secondary/primary accent palette */
+.prose a {
+  color: hsl(var(--secondary)) !important;
+  text-decoration: underline !important;
+  text-decoration-color: hsl(var(--secondary) / 0.45) !important;
+  text-underline-offset: 3px !important;
+  font-weight: inherit !important;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease !important;
+}
+
+.prose a:hover {
+  color: hsl(var(--primary)) !important;
+  text-decoration-color: hsl(var(--primary) / 0.6) !important;
+}
+
+/* Offset for sticky navbar when jumping to headings */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  scroll-margin-top: 5rem;
+}
+
+/* ─── Print ────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 2cm 2.5cm;
+  }
+
+  /* Kill animated background */
+  body::before {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide chrome: navbar, footer, floating buttons */
+  nav,
+  header,
+  footer,
+  aside,
+  .fixed {
+    display: none !important;
+  }
+
+  h1, h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  figure,
+  blockquote,
+  pre,
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
