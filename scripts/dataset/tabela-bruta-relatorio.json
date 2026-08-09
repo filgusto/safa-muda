@@ -1,0 +1,197 @@
+{
+  "total_extraido": 433,
+  "normalizacoes_de_digitacao": [
+    {
+      "pagina": 3,
+      "linha": "Capim Sapé Imperata brasiliensis Poaceae Médio Placenda 2 Retomada Matéria Orgânica",
+      "correcoes": [
+        "Placenda->Placenta"
+      ]
+    },
+    {
+      "pagina": 5,
+      "linha": "Cupuaçu Theobroma grandiflorum Malvaceae Médio Secundatia Tardia Abundância Fruta",
+      "correcoes": [
+        "Secundatia->Secundária"
+      ]
+    },
+    {
+      "pagina": 9,
+      "linha": "Picão Preto Bidens pilosa Asteraceae Médio Placenda 1 Acumulação Panc",
+      "correcoes": [
+        "Placenda->Placenta"
+      ]
+    },
+    {
+      "pagina": 11,
+      "linha": "Yacon Smallanthus sonchifolius Asteraceae Alto Plaventa 1 Abundância Hortaliça",
+      "correcoes": [
+        "Plaventa->Placenta"
+      ]
+    }
+  ],
+  "anomalias": [
+    {
+      "pagina": 1,
+      "linha": "Abobrinha Italiana Cucurbita pepo Cucurbitaceae Médio Placenta Abundância Hortaliça",
+      "faltando": [
+        "sucessao",
+        "estrato",
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": null,
+        "sucessao": null,
+        "sistema": "Abundância",
+        "grupo": "Hortaliça",
+        "sobrou": "Abobrinha Italiana Cucurbita pepo Cucurbitaceae Médio Placenta"
+      }
+    },
+    {
+      "pagina": 1,
+      "linha": "Ameixa vermelha Prunus Salicina Rosaceae Médio Secundária Média Abundância Fruta",
+      "faltando": [
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": "Médio",
+        "sucessao": "Secundária Média",
+        "sistema": "Abundância",
+        "grupo": "Fruta",
+        "sobrou": "Ameixa vermelha Prunus Salicina Rosaceae"
+      }
+    },
+    {
+      "pagina": 3,
+      "linha": "Calistemo Callistemon viminalis Myrtaceae Alto Pioneira Pioneira Ornamental",
+      "faltando": [
+        "sistema",
+        "estrato",
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": null,
+        "sucessao": "Pioneira",
+        "sistema": null,
+        "grupo": "Ornamental",
+        "sobrou": "Calistemo Callistemon viminalis Myrtaceae Alto Pioneira"
+      }
+    },
+    {
+      "pagina": 3,
+      "linha": "Cangerana Cabralea canjerana Meliaceae Emergente Abundância Abundância Madeira",
+      "faltando": [
+        "sucessao",
+        "estrato",
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": null,
+        "sucessao": null,
+        "sistema": "Abundância",
+        "grupo": "Madeira",
+        "sobrou": "Cangerana Cabralea canjerana Meliaceae Emergente Abundância"
+      }
+    },
+    {
+      "pagina": 5,
+      "linha": "Crotalaria Juncea Crotalaria Juncea Fabaceae Emergente Placenta 1 Acumulação Matéria Orgânica",
+      "faltando": [
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": "Emergente",
+        "sucessao": "Placenta 1",
+        "sistema": "Acumulação",
+        "grupo": "Matéria Orgânica",
+        "sobrou": "Crotalaria Juncea Crotalaria Juncea Fabaceae"
+      }
+    },
+    {
+      "pagina": 5,
+      "linha": "Crotalaria Spectabilis Crotalaria Spectabilis Fabaceae Alto Placenta 1 Acumulação Matéria Orgânica",
+      "faltando": [
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": "Alto",
+        "sucessao": "Placenta 1",
+        "sistema": "Acumulação",
+        "grupo": "Matéria Orgânica",
+        "sobrou": "Crotalaria Spectabilis Crotalaria Spectabilis Fabaceae"
+      }
+    },
+    {
+      "pagina": 7,
+      "linha": "Junteira Trichantera Gigante Acanthaceae Baixo Pioneira Abundância Matéria Orgânica",
+      "faltando": [
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": "Baixo",
+        "sucessao": "Pioneira",
+        "sistema": "Abundância",
+        "grupo": "Matéria Orgânica",
+        "sobrou": "Junteira Trichantera Gigante Acanthaceae"
+      }
+    },
+    {
+      "pagina": 8,
+      "linha": "Margaridão Tithonia diversifolia Asteraceae Pioneira Retomada Matéria Orgânica",
+      "faltando": [
+        "estrato"
+      ],
+      "parcial": {
+        "estrato": null,
+        "sucessao": "Pioneira",
+        "sistema": "Retomada",
+        "grupo": "Matéria Orgânica",
+        "sobrou": "Margaridão Tithonia diversifolia Asteraceae"
+      }
+    },
+    {
+      "pagina": 8,
+      "linha": "Melaleuca Melaleuca alternifolia Myrtaceae Alto Pioneira Pioneira Medicinal",
+      "faltando": [
+        "sistema",
+        "estrato",
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": null,
+        "sucessao": "Pioneira",
+        "sistema": null,
+        "grupo": "Medicinal",
+        "sobrou": "Melaleuca Melaleuca alternifolia Myrtaceae Alto Pioneira"
+      }
+    },
+    {
+      "pagina": 8,
+      "linha": "Morgote citrus reticulata x citrus sinensis Rutaceae Médio Secundária Média Abundância Fruta",
+      "faltando": [
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": "Médio",
+        "sucessao": "Secundária Média",
+        "sistema": "Abundância",
+        "grupo": "Fruta",
+        "sobrou": "Morgote citrus reticulata x citrus sinensis Rutaceae"
+      }
+    },
+    {
+      "pagina": 10,
+      "linha": "Quinoa Chenopodium quinoa Chenopodium quinoa Emergente Placenta 1 Abundância Grão",
+      "faltando": [
+        "nomes"
+      ],
+      "parcial": {
+        "estrato": "Emergente",
+        "sucessao": "Placenta 1",
+        "sistema": "Abundância",
+        "grupo": "Grão",
+        "sobrou": "Quinoa Chenopodium quinoa Chenopodium quinoa"
+      }
+    }
+  ]
+}

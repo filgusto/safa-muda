@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    name: Verificação estática
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+
+      - name: Formatação
+        run: npx prettier --check "**/*.{ts,tsx,md,json}"
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes
+        run: npm run test
+
+      # Roda sem nenhuma variável de ambiente, de propósito: garante que
+      # nenhum módulo exija segredo em tempo de importação — a armadilha
+      # descrita em docs/adr/0002-saida-do-payload-cms.md.
+      - name: Build
+        run: npm run build
+
+  migrations:
+    name: Migrations aplicam num banco limpo
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: safa_muda
+          POSTGRES_PASSWORD: senha_ci
+          POSTGRES_DB: safa_muda
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U safa_muda -d safa_muda"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+
+      - name: Aplicar migrations
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://safa_muda:senha_ci@localhost:5432/safa_muda
+
+      # Pega o caso clássico de alguém alterar o schema e esquecer de gerar a
+      # migration: se houver diferença, o drizzle-kit gera um arquivo novo.
+      - name: Schema e migrations estão em sincronia
+        run: |
+          npx drizzle-kit generate --name verificacao_ci
+          if [ -n "$(git status --porcelain db/migrations)" ]; then
+            echo "::error::O schema mudou sem migration correspondente."
+            echo "Rode: cd app && npm run db:generate -- --name descricao_curta"
+            git status --porcelain db/migrations
+            exit 1
+          fi
+        env:
+          DATABASE_URL: postgresql://safa_muda:senha_ci@localhost:5432/safa_muda
+
+  e2e:
+    name: Fluxos críticos (Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: safa_muda
+          POSTGRES_PASSWORD: senha_ci
+          POSTGRES_DB: safa_muda
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U safa_muda -d safa_muda"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://safa_muda:senha_ci@localhost:5432/safa_muda
+      AUTH_SECRET: segredo_de_teste_para_a_ci_apenas
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+
+      - name: Preparar o banco
+        run: |
+          npm run db:migrate
+          npm run db:seed
+
+      - run: npm run build
+
+      - name: Instalar navegador
+        run: npx playwright install --with-deps chromium
+
+      # Sem E2E_BASE_URL o próprio Playwright sobe a aplicação — ver
+      # playwright.config.ts.
+      - run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: app/playwright-report/
+          retention-days: 7
