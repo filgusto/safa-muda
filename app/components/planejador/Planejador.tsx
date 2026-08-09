@@ -3,28 +3,22 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, Info } from "lucide-react";
-import {
-  ZOOM_TIMELINE,
-  zoomSugerido,
-  mesRelativoParaData,
-} from "@/core/tempo.ts";
+import type { ZOOM_TIMELINE } from "@/core/tempo.ts";
+import { mesRelativoParaData } from "@/core/tempo.ts";
 import {
   coberturaPorEstrato,
   lacunasDeCobertura,
 } from "@/core/planejamento.ts";
-import { ESTRATO_LABEL } from "@/core/estratos.ts";
 import { PainelDoCatalogo } from "./PainelDoCatalogo.tsx";
 import { ProvedorDeArraste } from "./ArrasteContext.tsx";
 import { criarPlantio } from "@/app/actions/projetos.ts";
 import { Timeline } from "./Timeline.tsx";
 import { InspetorDePlantio } from "./InspetorDePlantio.tsx";
-import type { PlantioLocal, CargaDeArraste } from "./tipos.ts";
-
-const ROTULO_DO_ZOOM = { mes: "Mês", trimestre: "Trimestre", ano: "Ano" };
+import type { PlantioLocal, CargaDeArraste, PontoDeClique } from "./tipos.ts";
 
 /**
- * Orquestra o planejador: catálogo à esquerda, timeline no meio, inspetor à
- * direita.
+ * Orquestra o planejador: catálogo em cima, timeline no meio e o inspetor como
+ * caixa sobreposta, ancorada na barra clicada.
  *
  * Mantém uma cópia local dos plantios para que arrastar responda na hora. O
  * servidor revalida a rota depois de cada ação, e o efeito abaixo ressincroniza
@@ -36,17 +30,29 @@ export function Planejador({
   dataInicio,
   plantiosIniciais,
   podeEditar,
+  zoom,
+  onZoom,
+  catalogoAberto,
 }: {
   projectId: string;
   horizonteMeses: number;
   dataInicio: string;
   plantiosIniciais: PlantioLocal[];
   podeEditar: boolean;
+  /** Mora no Workspace por sobreviver à troca de vista; os botões estão no
+   *  rodapé da timeline. */
+  zoom: (typeof ZOOM_TIMELINE)[number];
+  onZoom: (zoom: (typeof ZOOM_TIMELINE)[number]) => void;
+  /** Idem: quem alterna a gaveta de plantas é o botão da barra. */
+  catalogoAberto: boolean;
 }) {
   const router = useRouter();
   const [plantios, setPlantios] = useState(plantiosIniciais);
-  const [zoom, setZoom] = useState(() => zoomSugerido(horizonteMeses));
-  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  /** O inspetor é uma caixa sobreposta: guarda também onde o clique caiu. */
+  const [selecao, setSelecao] = useState<{
+    id: string;
+    ponto: PontoDeClique;
+  } | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => setPlantios(plantiosIniciais), [plantiosIniciais]);
@@ -70,7 +76,24 @@ export function Planejador({
     [inicio],
   );
 
-  const selecionado = plantios.find((p) => p.id === selecionadoId) ?? null;
+  /** Ano do calendário de um mês relativo — a régua da timeline usa no tooltip. */
+  const mesParaAno = useCallback(
+    (mes: number) => mesRelativoParaData(inicio, mes).getFullYear(),
+    [inicio],
+  );
+
+  const selecionado = selecao
+    ? (plantios.find((p) => p.id === selecao.id) ?? null)
+    : null;
+
+  const selecionar = useCallback((id: string | null, ponto?: PontoDeClique) => {
+    setSelecao(id && ponto ? { id, ponto } : null);
+  }, []);
+
+  const fecharInspetor = useCallback(() => {
+    setSelecao(null);
+    router.refresh();
+  }, [router]);
 
   const cobertura = useMemo(
     () => coberturaPorEstrato(plantios, horizonteMeses),
@@ -128,32 +151,12 @@ export function Planejador({
   return (
     <ProvedorDeArraste>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-3 border-b border-bg-border px-4 py-2">
-          <span className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground">
-            Escala
-          </span>
-          <div className="flex gap-1">
-            {ZOOM_TIMELINE.map((nivel) => (
-              <button
-                key={nivel}
-                type="button"
-                onClick={() => setZoom(nivel)}
-                className={`rounded-md border px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider transition-colors duration-240 ${
-                  zoom === nivel
-                    ? "border-primary/50 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {ROTULO_DO_ZOOM[nivel]}
-              </button>
-            ))}
-          </div>
-
-          <span className="ml-auto font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground">
-            <span className="metric">{plantios.length}</span> plantios ·{" "}
-            <span className="metric">{horizonteMeses / 12}</span> anos
-          </span>
-        </div>
+        {podeEditar && (
+          <PainelDoCatalogo
+            aberto={catalogoAberto}
+            onAdicionar={adicionarNoInicio}
+          />
+        )}
 
         {aviso && (
           <div className="flex items-start gap-2 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-xs leading-[1.6] text-amber-900 dark:text-amber-200">
@@ -170,95 +173,41 @@ export function Planejador({
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          {podeEditar && <PainelDoCatalogo onAdicionar={adicionarNoInicio} />}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <Timeline
+            projectId={projectId}
+            horizonteMeses={horizonteMeses}
+            mesDeHoje={mesDeHoje}
+            plantios={plantios}
+            podeEditar={podeEditar}
+            zoom={zoom}
+            onZoom={onZoom}
+            cobertura={cobertura}
+            lacunas={lacunas}
+            mesParaData={mesParaData}
+            mesParaAno={mesParaAno}
+            mesDoAnoInicial={inicio.getMonth()}
+            selecionadoId={selecao?.id ?? null}
+            onSelecionar={selecionar}
+            onMudanca={aoMudar}
+            onAviso={setAviso}
+          />
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <Timeline
-              projectId={projectId}
-              horizonteMeses={horizonteMeses}
-              mesDeHoje={mesDeHoje}
-              plantios={plantios}
-              podeEditar={podeEditar}
-              zoom={zoom}
-              selecionadoId={selecionadoId}
-              onSelecionar={setSelecionadoId}
-              onMudanca={aoMudar}
-              onAviso={setAviso}
-            />
-
-            <Resumo
-              cobertura={cobertura}
-              lacunas={lacunas}
-              mesParaData={mesParaData}
-            />
-          </div>
-
-          {selecionado && (
+          {selecionado && selecao && (
             <InspetorDePlantio
+              key={selecionado.id}
               plantio={selecionado}
               projectId={projectId}
               podeEditar={podeEditar}
+              horizonteMeses={horizonteMeses}
+              dataInicio={inicio}
               mesParaData={mesParaData}
-              onFechar={() => {
-                setSelecionadoId(null);
-                router.refresh();
-              }}
+              ponto={selecao.ponto}
+              onFechar={fecharInspetor}
             />
           )}
         </div>
       </div>
     </ProvedorDeArraste>
-  );
-}
-
-/**
- * Resumo do desenho.
- *
- * Mede presença no TEMPO por andar. A ocupação ideal do livro (20/40/60/80%) é
- * de ESPAÇO, então aparece ao lado como referência, não como veredito — só o
- * mapa (fase 4) permitirá confrontar as duas de verdade.
- */
-function Resumo({
-  cobertura,
-  lacunas,
-  mesParaData,
-}: {
-  cobertura: ReturnType<typeof coberturaPorEstrato>;
-  lacunas: { de: number; ate: number }[];
-  mesParaData: (mes: number) => string;
-}) {
-  return (
-    <div className="border-t border-bg-border bg-bg-surface1/40 px-4 py-3">
-      <div className="flex flex-wrap gap-x-6 gap-y-2">
-        {cobertura.map((linha) => (
-          <div key={linha.estrato} className="flex items-baseline gap-2">
-            <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-              {ESTRATO_LABEL[linha.estrato]}
-            </span>
-            <span className="metric text-xs">
-              {Math.round(linha.cobertura * 100)}%
-            </span>
-            <span className="font-mono text-[0.6rem] text-muted-foreground/60">
-              do tempo
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {lacunas.length > 0 && (
-        <p className="mt-2 text-xs leading-[1.6] text-muted-foreground">
-          Solo descoberto em{" "}
-          {lacunas
-            .slice(0, 3)
-            .map(
-              (lacuna) =>
-                `${mesParaData(lacuna.de)}–${mesParaData(lacuna.ate)}`,
-            )
-            .join(", ")}
-          {lacunas.length > 3 && ` e mais ${lacunas.length - 3} trecho(s)`}.
-        </p>
-      )}
-    </div>
   );
 }

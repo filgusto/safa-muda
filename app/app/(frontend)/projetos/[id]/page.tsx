@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Eye } from "lucide-react";
 import { getViewer } from "@/lib/access.ts";
 import {
   buscarProjeto,
@@ -75,28 +73,8 @@ export default async function ProjetoPage({
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-bg-border px-4 py-3">
-        <Link
-          href="/projetos"
-          className="inline-flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground transition-colors duration-240 hover:text-foreground"
-        >
-          <ArrowLeft size={12} />
-          Projetos
-        </Link>
-
-        <h1 className="font-serif text-lg font-semibold tracking-tight">
-          {projeto.nome}
-        </h1>
-
-        {!podeEditar && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider text-muted-foreground">
-            <Eye size={11} />
-            somente leitura
-          </span>
-        )}
-      </header>
-
       <Workspace
+        nome={projeto.nome}
         projectId={projeto.id}
         horizonteMeses={projeto.horizonteMeses}
         dataInicio={projeto.dataInicio.toISOString()}
