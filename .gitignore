@@ -1,6 +1,8 @@
 .env
 .env.prod
 .claude
+# Guia pessoal de teste local — não versionado
+docs/TESTE-LOCAL.md
 # Uploads de mídia — ficam no MinIO, não no git
 app/media/
 # Next.js

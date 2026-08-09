@@ -1,4 +1,14 @@
-import { and, or, ilike, eq, asc, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  or,
+  ilike,
+  eq,
+  lte,
+  inArray,
+  asc,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { species, type Species } from "@/db/schema/species.ts";
 import { ESTRATOS, type Estrato } from "@/core/estratos.ts";
@@ -9,6 +19,7 @@ import {
   type Sistema,
 } from "@/core/sucessao.ts";
 import { GRUPOS, type Grupo } from "@/core/grupos.ts";
+import { lerFaixaDeColheita, type FaixaDeColheita } from "@/core/colheita.ts";
 
 /**
  * Consultas do catálogo público.
@@ -18,13 +29,23 @@ import { GRUPOS, type Grupo } from "@/core/grupos.ts";
  * consulta a sessão.
  */
 
+/**
+ * Cada dimensão aceita vários valores, combinados em OU dentro dela e em E
+ * entre elas: "fruta ou castanha, no estrato alto". Um único valor continua
+ * sendo o caso comum — os `<select>` do catálogo público mandam um só.
+ */
 export interface FiltrosCatalogo {
   busca?: string;
-  estrato?: Estrato;
-  sucessao?: Sucessao;
-  sistema?: Sistema;
-  grupo?: Grupo;
-  familia?: string;
+  estratos?: Estrato[];
+  sucessoes?: Sucessao[];
+  sistemas?: Sistema[];
+  grupos?: Grupo[];
+  familias?: string[];
+  /**
+   * Teto de espera até a colheita, em dias. Vários tetos pedidos viram o maior
+   * deles — "em até 6 meses ou em até 2 anos" é "em até 2 anos".
+   */
+  colheitaAteDias?: number;
 }
 
 /** Converte query params crus em filtros validados, descartando lixo. */
@@ -35,23 +56,42 @@ export function lerFiltros(
     const valor = params[chave];
     return typeof valor === "string" && valor.trim() ? valor.trim() : undefined;
   };
+
+  /** Aceita `?grupo=fruta&grupo=grao` e `?grupo=fruta,grao` — e nada de vazios. */
+  const lista = (chave: string): string[] => {
+    const valor = params[chave];
+    const cru = Array.isArray(valor) ? valor : valor ? [valor] : [];
+    const itens = cru
+      .flatMap((parte) => parte.split(","))
+      .map((parte) => parte.trim())
+      .filter(Boolean);
+    return Array.from(new Set(itens));
+  };
+
   const deVocabulario = <T extends string>(
     chave: string,
     vocabulario: readonly T[],
-  ): T | undefined => {
-    const valor = texto(chave);
-    return valor && (vocabulario as readonly string[]).includes(valor)
-      ? (valor as T)
-      : undefined;
+  ): T[] | undefined => {
+    const validos = lista(chave).filter((valor) =>
+      (vocabulario as readonly string[]).includes(valor),
+    ) as T[];
+    return validos.length ? validos : undefined;
   };
+
+  const familias = lista("familia");
+
+  const tetos = lista("colheita")
+    .map(lerFaixaDeColheita)
+    .filter((faixa): faixa is FaixaDeColheita => faixa !== null);
 
   return {
     busca: texto("busca"),
-    estrato: deVocabulario("estrato", ESTRATOS),
-    sucessao: deVocabulario("sucessao", SUCESSOES),
-    sistema: deVocabulario("sistema", SISTEMAS),
-    grupo: deVocabulario("grupo", GRUPOS),
-    familia: texto("familia"),
+    estratos: deVocabulario("estrato", ESTRATOS),
+    sucessoes: deVocabulario("sucessao", SUCESSOES),
+    sistemas: deVocabulario("sistema", SISTEMAS),
+    grupos: deVocabulario("grupo", GRUPOS),
+    familias: familias.length ? familias : undefined,
+    colheitaAteDias: tetos.length ? Math.max(...tetos) : undefined,
   };
 }
 
@@ -71,12 +111,27 @@ function montarCondicoes(filtros: FiltrosCatalogo): SQL | undefined {
     if (busca) condicoes.push(busca);
   }
 
-  if (filtros.estrato) condicoes.push(eq(species.estrato, filtros.estrato));
-  if (filtros.sucessao) condicoes.push(eq(species.sucessao, filtros.sucessao));
-  if (filtros.sistema) condicoes.push(eq(species.sistema, filtros.sistema));
-  if (filtros.familia) condicoes.push(eq(species.familia, filtros.familia));
-  if (filtros.grupo) {
-    condicoes.push(sql`${filtros.grupo} = any(${species.grupos})`);
+  if (filtros.estratos)
+    condicoes.push(inArray(species.estrato, filtros.estratos));
+  if (filtros.sucessoes)
+    condicoes.push(inArray(species.sucessao, filtros.sucessoes));
+  if (filtros.sistemas)
+    condicoes.push(inArray(species.sistema, filtros.sistemas));
+  if (filtros.familias)
+    condicoes.push(inArray(species.familia, filtros.familias));
+  // `lte` já descarta o nulo: espécie sem prazo informado não entra no filtro
+  // de colheita, e não ganha um prazo estimado para poder entrar.
+  if (filtros.colheitaAteDias !== undefined) {
+    condicoes.push(lte(species.diasParaColherMax, filtros.colheitaAteDias));
+  }
+
+  if (filtros.grupos) {
+    // `grupos` é coluna de enum em array: basta a espécie ter um dos pedidos.
+    // Cada valor vai como parâmetro para não montar literal de array na mão.
+    const porGrupo = or(
+      ...filtros.grupos.map((grupo) => sql`${grupo} = any(${species.grupos})`),
+    );
+    if (porGrupo) condicoes.push(porGrupo);
   }
 
   return condicoes.length ? and(...condicoes) : undefined;

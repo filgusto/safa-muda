@@ -12,6 +12,17 @@ export interface EspecieDoPainel {
   diasParaColherMax: number | null;
 }
 
+/**
+ * Ponto do clique, em coordenadas de viewport (`clientX`/`clientY`).
+ *
+ * O inspetor abre ancorado nele, e não numa coluna fixa — a barra clicada pode
+ * estar em qualquer canto da timeline rolável.
+ */
+export interface PontoDeClique {
+  x: number;
+  y: number;
+}
+
 /** Plantio no estado local da timeline. */
 export interface PlantioLocal {
   id: string;

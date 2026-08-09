@@ -56,6 +56,14 @@ export function ProvedorDeArraste({ children }: { children: React.ReactNode }) {
   const [estado, setEstado] = useState<EstadoDoArraste | null>(null);
   const resolvedorRef = useRef<ResolvedorDeSoltura | null>(null);
   const inicioRef = useRef<{ x: number; y: number } | null>(null);
+  /**
+   * Espelho do estado para leitura na soltura.
+   *
+   * A soltura não pode ler o estado de dentro do updater do `setEstado`: em
+   * modo estrito o React chama o updater duas vezes, e o plantio era criado em
+   * duplicata.
+   */
+  const estadoRef = useRef<EstadoDoArraste | null>(null);
 
   const definirResolvedor = useCallback(
     (resolvedor: ResolvedorDeSoltura | null) => {
@@ -73,6 +81,7 @@ export function ProvedorDeArraste({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    estadoRef.current = estado;
     if (!estado) return;
 
     const aoMover = (evento: PointerEvent) => {
@@ -97,17 +106,13 @@ export function ProvedorDeArraste({ children }: { children: React.ReactNode }) {
     };
 
     const aoSoltar = (evento: PointerEvent) => {
-      setEstado((anterior) => {
-        if (anterior?.ativo) {
-          resolvedorRef.current?.(
-            anterior.carga,
-            evento.clientX,
-            evento.clientY,
-          );
-        }
-        return null;
-      });
+      const anterior = estadoRef.current;
+      setEstado(null);
       inicioRef.current = null;
+
+      if (anterior?.ativo) {
+        resolvedorRef.current?.(anterior.carga, evento.clientX, evento.clientY);
+      }
     };
 
     const aoCancelar = () => {
