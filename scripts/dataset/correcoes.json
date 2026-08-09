@@ -1,0 +1,303 @@
+{
+  "_doc": [
+    "Correções manuais sobre a extração da Tabela Guia de Estratos",
+    "Agroflorestais (Namastê Messerschmidt).",
+    "",
+    "Nada aqui é estimativa. São erros de grafia, atribuições taxonômicas",
+    "equivocadas, ou campos que a fonte deixou inválidos/ausentes — nesses",
+    "últimos o valor vira null, nunca um chute. Ver a regra de ouro dos dados",
+    "em CONTRIBUTING.md.",
+    "",
+    "Três seções:",
+    "  linhas_manuais - linhas que o parser recusou (colunas deslocadas ou",
+    "                   ausentes na fonte); reconstruídas campo a campo. 'campos_corrigidos' diz quais valores NÃO vieram da fonte",
+    "  correcoes      - ajustes em linhas que o parser leu corretamente",
+    "  duplicatas     - mesma planta listada duas vezes",
+    "",
+    "categoria: grafia | taxonomia | ausente"
+  ],
+  "linhas_manuais": {
+    "Abobrinha Italiana": {
+      "linha_fonte": "Abobrinha Italiana Cucurbita pepo Cucurbitaceae Médio Placenta Abundância Hortaliça",
+      "campos": {
+        "nome_cientifico": "Cucurbita pepo",
+        "familia": "Cucurbitaceae",
+        "estrato": "Médio",
+        "sucessao": null,
+        "sistema": "Abundância",
+        "grupo": "Hortaliça"
+      },
+      "campos_corrigidos": [
+        "sucessao"
+      ],
+      "categoria": "ausente",
+      "motivo": "A fonte traz apenas 'Placenta', sem indicar se é Placenta 1 ou 2. Não dá para desambiguar sem inventar."
+    },
+    "Ameixa vermelha": {
+      "linha_fonte": "Ameixa vermelha Prunus Salicina Rosaceae Médio Secundária Média Abundância Fruta",
+      "campos": {
+        "nome_cientifico": "Prunus salicina",
+        "familia": "Rosaceae",
+        "estrato": "Médio",
+        "sucessao": "Secundária Média",
+        "sistema": "Abundância",
+        "grupo": "Fruta"
+      },
+      "campos_corrigidos": [
+        "nome_cientifico"
+      ],
+      "categoria": "grafia",
+      "motivo": "Epíteto específico se escreve em minúscula: 'Prunus Salicina' -> Prunus salicina."
+    },
+    "Calistemo": {
+      "linha_fonte": "Calistemo Callistemon viminalis Myrtaceae Alto Pioneira Pioneira Ornamental",
+      "campos": {
+        "nome_cientifico": "Callistemon viminalis",
+        "familia": "Myrtaceae",
+        "estrato": "Alto",
+        "sucessao": "Pioneira",
+        "sistema": null,
+        "grupo": "Ornamental"
+      },
+      "campos_corrigidos": [
+        "sistema"
+      ],
+      "categoria": "ausente",
+      "motivo": "A fonte repete 'Pioneira' na coluna Sistema, que só admite Retomada, Acumulação ou Abundância."
+    },
+    "Cangerana": {
+      "linha_fonte": "Cangerana Cabralea canjerana Meliaceae Emergente Abundância Abundância Madeira",
+      "campos": {
+        "nome_cientifico": "Cabralea canjerana",
+        "familia": "Meliaceae",
+        "estrato": "Emergente",
+        "sucessao": null,
+        "sistema": "Abundância",
+        "grupo": "Madeira"
+      },
+      "campos_corrigidos": [
+        "sucessao"
+      ],
+      "categoria": "ausente",
+      "motivo": "A fonte traz 'Abundância' na coluna Sucessão, que é valor de Sistema. A sucessão real não foi informada."
+    },
+    "Crotalaria Juncea": {
+      "linha_fonte": "Crotalaria Juncea Crotalaria Juncea Fabaceae Emergente Placenta 1 Acumulação Matéria Orgânica",
+      "campos": {
+        "nome_cientifico": "Crotalaria juncea",
+        "familia": "Fabaceae",
+        "estrato": "Emergente",
+        "sucessao": "Placenta 1",
+        "sistema": "Acumulação",
+        "grupo": "Matéria Orgânica"
+      },
+      "campos_corrigidos": [
+        "nome_cientifico"
+      ],
+      "categoria": "grafia",
+      "motivo": "Epíteto específico em minúscula."
+    },
+    "Crotalaria Spectabilis": {
+      "linha_fonte": "Crotalaria Spectabilis Crotalaria Spectabilis Fabaceae Alto Placenta 1 Acumulação Matéria Orgânica",
+      "campos": {
+        "nome_cientifico": "Crotalaria spectabilis",
+        "familia": "Fabaceae",
+        "estrato": "Alto",
+        "sucessao": "Placenta 1",
+        "sistema": "Acumulação",
+        "grupo": "Matéria Orgânica"
+      },
+      "campos_corrigidos": [
+        "nome_cientifico"
+      ],
+      "categoria": "grafia",
+      "motivo": "Epíteto específico em minúscula."
+    },
+    "Junteira": {
+      "linha_fonte": "Junteira Trichantera Gigante Acanthaceae Baixo Pioneira Abundância Matéria Orgânica",
+      "campos": {
+        "nome_cientifico": "Trichanthera gigantea",
+        "familia": "Acanthaceae",
+        "estrato": "Baixo",
+        "sucessao": "Pioneira",
+        "sistema": "Abundância",
+        "grupo": "Matéria Orgânica"
+      },
+      "campos_corrigidos": [
+        "nome_cientifico"
+      ],
+      "categoria": "grafia",
+      "motivo": "A fonte traz 'Trichantera Gigante', com gênero incompleto e epíteto aportuguesado."
+    },
+    "Margaridão": {
+      "linha_fonte": "Margaridão Tithonia diversifolia Asteraceae Pioneira Retomada Matéria Orgânica",
+      "campos": {
+        "nome_cientifico": "Tithonia diversifolia",
+        "familia": "Asteraceae",
+        "estrato": null,
+        "sucessao": "Pioneira",
+        "sistema": "Retomada",
+        "grupo": "Matéria Orgânica"
+      },
+      "campos_corrigidos": [
+        "estrato"
+      ],
+      "categoria": "ausente",
+      "motivo": "A linha da fonte não traz a coluna Estrato."
+    },
+    "Melaleuca": {
+      "linha_fonte": "Melaleuca Melaleuca alternifolia Myrtaceae Alto Pioneira Pioneira Medicinal",
+      "campos": {
+        "nome_cientifico": "Melaleuca alternifolia",
+        "familia": "Myrtaceae",
+        "estrato": "Alto",
+        "sucessao": "Pioneira",
+        "sistema": null,
+        "grupo": "Medicinal"
+      },
+      "campos_corrigidos": [
+        "sistema"
+      ],
+      "categoria": "ausente",
+      "motivo": "A fonte repete 'Pioneira' na coluna Sistema, que só admite Retomada, Acumulação ou Abundância."
+    },
+    "Morgote": {
+      "linha_fonte": "Morgote citrus reticulata x citrus sinensis Rutaceae Médio Secundária Média Abundância Fruta",
+      "campos": {
+        "nome_cientifico": "Citrus reticulata × Citrus sinensis",
+        "familia": "Rutaceae",
+        "estrato": "Médio",
+        "sucessao": "Secundária Média",
+        "sistema": "Abundância",
+        "grupo": "Fruta"
+      },
+      "campos_corrigidos": [
+        "nome_cientifico"
+      ],
+      "categoria": "grafia",
+      "motivo": "A fonte traz os gêneros em minúscula e o sinal de híbrido como 'x'."
+    },
+    "Quinoa": {
+      "linha_fonte": "Quinoa Chenopodium quinoa Chenopodium quinoa Emergente Placenta 1 Abundância Grão",
+      "campos": {
+        "nome_cientifico": "Chenopodium quinoa",
+        "familia": "Amaranthaceae",
+        "estrato": "Emergente",
+        "sucessao": "Placenta 1",
+        "sistema": "Abundância",
+        "grupo": "Grão"
+      },
+      "campos_corrigidos": [
+        "familia"
+      ],
+      "categoria": "taxonomia",
+      "motivo": "A fonte repete o nome científico na coluna Família. Chenopodium foi incorporado a Amaranthaceae."
+    }
+  },
+  "correcoes": {
+    "Abacate": {
+      "categoria": "taxonomia",
+      "campos": {
+        "nome_cientifico": "Persea americana"
+      },
+      "motivo": "A fonte traz 'Laurus persea', binômio pré-lineano em desuso. O nome aceito é Persea americana (Lauraceae), família que a própria fonte já registra."
+    },
+    "Abacaxi": {
+      "categoria": "taxonomia",
+      "campos": {
+        "nome_cientifico": "Ananas comosus"
+      },
+      "motivo": "'Ananas sativus' é sinônimo antigo; o nome aceito é Ananas comosus."
+    },
+    "Acácia Mangium": {
+      "categoria": "grafia",
+      "campos": {
+        "nome_cientifico": "Acacia mangium"
+      },
+      "motivo": "Nome científico não leva acento: o gênero é Acacia."
+    },
+    "Acácia Negra": {
+      "categoria": "grafia",
+      "campos": {
+        "nome_cientifico": "Acacia mearnsii"
+      },
+      "motivo": "A fonte traz 'Acácia meransii'. Gênero sem acento e epíteto correto é mearnsii."
+    },
+    "Almeirão": {
+      "categoria": "taxonomia",
+      "campos": {
+        "nome_cientifico": "Cichorium intybus"
+      },
+      "motivo": "A fonte repete Cichorium endivia, que é a escarola (listada à parte na mesma tabela). O almeirão é Cichorium intybus."
+    },
+    "Angico Preto": {
+      "categoria": "grafia",
+      "campos": {
+        "nome_cientifico": "Anadenanthera peregrina"
+      },
+      "motivo": "A fonte traz 'Anandenanthera peregrina', com 'n' a mais."
+    },
+    "Batata Salsa": {
+      "categoria": "taxonomia",
+      "campos": {
+        "nome_cientifico": "Arracacia xanthorrhiza",
+        "familia": "Apiaceae"
+      },
+      "motivo": "A fonte atribui à batata-salsa o nome científico e a família do capim-limão (Cymbopogon citratus, Poaceae) — provável deslocamento de linha. A batata-salsa/mandioquinha é Arracacia xanthorrhiza (Apiaceae)."
+    },
+    "Canela Ferrugem": {
+      "categoria": "grafia",
+      "campos": {
+        "nome_cientifico": "Nectandra oppositifolia"
+      },
+      "motivo": "A fonte traz 'oppositifloia', com letras trocadas."
+    },
+    "Caqui": {
+      "categoria": "grafia",
+      "campos": {
+        "nome_cientifico": "Diospyros kaki"
+      },
+      "motivo": "A fonte traz 'Diospyrus kaki'. O gênero é Diospyros."
+    },
+    "Carambola": {
+      "categoria": "grafia",
+      "campos": {
+        "nome_cientifico": "Averrhoa carambola"
+      },
+      "motivo": "A fonte traz 'Avehrroa carambola', com 'h' deslocado."
+    },
+    "Grumixama": {
+      "categoria": "taxonomia",
+      "campos": {
+        "nome_cientifico": "Eugenia brasiliensis"
+      },
+      "motivo": "A fonte repete Myrciaria glazioviana, que é a cabeludinha (listada à parte na mesma tabela). A grumixama é Eugenia brasiliensis."
+    }
+  },
+  "duplicatas": [
+    {
+      "manter": "Jenipapo",
+      "remover": "Genipapo",
+      "motivo": "Duas grafias do mesmo nome comum para Genipa americana, com todos os demais campos idênticos."
+    },
+    {
+      "manter": "Yacon",
+      "remover": "Batata Yacon",
+      "campos_do_mantido": {
+        "sucessao": null
+      },
+      "motivo": "Mesma planta (Smallanthus sonchifolius) listada duas vezes. As duas linhas se contradizem na sucessão (Placenta 1 em 'Yacon', Placenta 2 em 'Batata Yacon'), então nenhuma pode ser tomada como correta e o campo fica nulo."
+    }
+  ],
+  "sinonimos": {
+    "Jenipapo": [
+      "Genipapo"
+    ],
+    "Yacon": [
+      "Batata Yacon"
+    ],
+    "Piteira": [
+      "Maguey"
+    ]
+  }
+}

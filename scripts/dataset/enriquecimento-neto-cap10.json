@@ -1,0 +1,338 @@
+{
+  "_doc": [
+    "Enriquecimento do catálogo com ciclo e espaçamento em MONOCULTURA.",
+    "",
+    "Fonte: 'Agroflorestando o Mundo — De Facão a Trator' (Corrêa Neto,",
+    "Messerschmidt, Steenbock, Monnerat; Cooperafloresta, 2016), cap. 10.1,",
+    "tabelas 2 a 10 (págs. 140-149).",
+    "",
+    "Só entram valores lidos diretamente das tabelas. Onde o livro dá faixa",
+    "('90 a 120 dias', '20 a 35cm'), guardamos min e max — não a média, porque",
+    "a média seria um número que a fonte não afirma.",
+    "",
+    "O próprio livro adverte: 'espaçamentos e ciclos das plantas mudam com solo,",
+    "clima e estação do ano'. Estes valores são referência de partida, não regra.",
+    "",
+    "Espaçamentos em METROS. 'entre_linhas' é a distância entre fileiras;",
+    "'na_linha' é a distância entre plantas dentro da fileira.",
+    "Onde a fonte dá densidade em vez de espaçamento (ex.: '8 plantas/m2',",
+    "milho adensado), o espaçamento fica ausente e a densidade vai em nota."
+  ],
+  "fonte": "neto-cap10",
+  "especies": {
+    "Alface": {
+      "dias_para_colher_min": 40,
+      "dias_para_colher_max": 60,
+      "espacamento_entre_linhas_min_m": 0.25,
+      "espacamento_entre_linhas_max_m": 0.35,
+      "espacamento_na_linha_min_m": 0.2,
+      "espacamento_na_linha_max_m": 0.35,
+      "tabelas": [
+        2,
+        3,
+        6,
+        8
+      ]
+    },
+    "Rabanete": {
+      "dias_para_colher_min": 25,
+      "dias_para_colher_max": 30,
+      "espacamento_entre_linhas_min_m": 0.2,
+      "espacamento_entre_linhas_max_m": 0.2,
+      "espacamento_na_linha_min_m": 0.05,
+      "espacamento_na_linha_max_m": 0.15,
+      "tabelas": [
+        2,
+        3,
+        6,
+        7
+      ]
+    },
+    "Rúcula": {
+      "dias_para_colher_min": 25,
+      "dias_para_colher_max": 30,
+      "espacamento_entre_linhas_min_m": 0.2,
+      "espacamento_entre_linhas_max_m": 0.2,
+      "espacamento_na_linha_min_m": 0.05,
+      "espacamento_na_linha_max_m": 0.15,
+      "tabelas": [
+        2,
+        3,
+        6
+      ]
+    },
+    "Coentro": {
+      "dias_para_colher_min": 25,
+      "dias_para_colher_max": 30,
+      "espacamento_entre_linhas_min_m": 0.2,
+      "espacamento_entre_linhas_max_m": 0.2,
+      "espacamento_na_linha_min_m": 0.05,
+      "espacamento_na_linha_max_m": 0.15,
+      "tabelas": [
+        3,
+        6
+      ]
+    },
+    "Almeirão": {
+      "dias_para_colher_min": 45,
+      "dias_para_colher_max": 60,
+      "tabelas": [
+        3,
+        6
+      ],
+      "nota": "A fonte agrupa alface, chicória, almeirão e nabo na mesma linha de espaçamento (20-35cm x 25-35cm), sem separar por espécie."
+    },
+    "Acelga": {
+      "dias_para_colher_min": 45,
+      "dias_para_colher_max": 60,
+      "espacamento_entre_linhas_min_m": 0.4,
+      "espacamento_entre_linhas_max_m": 0.4,
+      "espacamento_na_linha_min_m": 0.4,
+      "espacamento_na_linha_max_m": 0.4,
+      "tabelas": [
+        3
+      ]
+    },
+    "Nabo": {
+      "dias_para_colher_min": 45,
+      "dias_para_colher_max": 60,
+      "tabelas": [
+        3,
+        6
+      ],
+      "nota": "Agrupado com alface, chicória e almeirão na mesma linha de espaçamento."
+    },
+    "Couve": {
+      "dias_para_colher_min": 65,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 0.5,
+      "espacamento_entre_linhas_max_m": 1.0,
+      "espacamento_na_linha_min_m": 0.5,
+      "espacamento_na_linha_max_m": 1.0,
+      "tabelas": [
+        3,
+        6,
+        7,
+        8
+      ],
+      "nota": "Tabela 3 traz 50cm x 1m; tabelas 6 a 8 trazem 1,00 x 0,5m."
+    },
+    "Couve flor": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 1.0,
+      "espacamento_entre_linhas_max_m": 1.0,
+      "espacamento_na_linha_min_m": 0.5,
+      "espacamento_na_linha_max_m": 0.5,
+      "tabelas": [
+        6,
+        7,
+        8
+      ]
+    },
+    "Brócoli Ramoso": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 1.0,
+      "espacamento_entre_linhas_max_m": 1.0,
+      "espacamento_na_linha_min_m": 0.5,
+      "espacamento_na_linha_max_m": 0.5,
+      "tabelas": [
+        6,
+        7,
+        8
+      ]
+    },
+    "Milho verde": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 120,
+      "tabelas": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "nota": "A fonte dá densidade, não espaçamento: 8 plantas/m² em plantio adensado."
+    },
+    "Gergelim": {
+      "dias_para_colher_min": 80,
+      "dias_para_colher_max": 120,
+      "tabelas": [
+        6,
+        7,
+        9,
+        10
+      ],
+      "nota": "A fonte dá densidade: 40 plantas/m². Em consórcio, 10 sementes por cova."
+    },
+    "Quiabo": {
+      "dias_para_colher_min": 80,
+      "dias_para_colher_max": 120,
+      "tabelas": [
+        6,
+        8,
+        9,
+        10
+      ]
+    },
+    "Feijão de Corda": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 90,
+      "espacamento_entre_linhas_min_m": 1.0,
+      "espacamento_entre_linhas_max_m": 1.0,
+      "espacamento_na_linha_min_m": 0.6,
+      "espacamento_na_linha_max_m": 0.6,
+      "tabelas": [
+        4,
+        5
+      ],
+      "nota": "Duas sementes por cova."
+    },
+    "Vagem": {
+      "dias_para_colher_min": 60,
+      "dias_para_colher_max": 90,
+      "espacamento_entre_linhas_min_m": 0.3,
+      "espacamento_entre_linhas_max_m": 1.0,
+      "espacamento_na_linha_min_m": 0.3,
+      "espacamento_na_linha_max_m": 0.6,
+      "tabelas": [
+        4
+      ],
+      "nota": "A fonte distingue vagem trepadeira (1,0 x 0,6m) de vagem rasteira/de arranque (30x30cm)."
+    },
+    "Arroz": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 90,
+      "espacamento_entre_linhas_min_m": 0.3,
+      "espacamento_entre_linhas_max_m": 0.3,
+      "espacamento_na_linha_min_m": 0.3,
+      "espacamento_na_linha_max_m": 0.3,
+      "tabelas": [
+        4,
+        5
+      ],
+      "nota": "Variedade de 3 meses."
+    },
+    "Pepino": {
+      "dias_para_colher_min": 40,
+      "dias_para_colher_max": 90,
+      "espacamento_entre_linhas_min_m": 1.2,
+      "espacamento_entre_linhas_max_m": 1.2,
+      "espacamento_na_linha_min_m": 0.3,
+      "espacamento_na_linha_max_m": 0.3,
+      "tabelas": [
+        5
+      ]
+    },
+    "Melancia": {
+      "dias_para_colher_min": 40,
+      "dias_para_colher_max": 90,
+      "espacamento_entre_linhas_min_m": 3.0,
+      "espacamento_entre_linhas_max_m": 3.0,
+      "espacamento_na_linha_min_m": 3.0,
+      "espacamento_na_linha_max_m": 3.0,
+      "tabelas": [
+        5
+      ]
+    },
+    "Cenoura": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 0.2,
+      "espacamento_entre_linhas_max_m": 0.2,
+      "espacamento_na_linha_min_m": 0.1,
+      "espacamento_na_linha_max_m": 0.1,
+      "tabelas": [
+        7
+      ]
+    },
+    "Beterraba": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 0.25,
+      "espacamento_entre_linhas_max_m": 0.25,
+      "espacamento_na_linha_min_m": 0.1,
+      "espacamento_na_linha_max_m": 0.1,
+      "tabelas": [
+        7
+      ]
+    },
+    "Batata Inglesa": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 90,
+      "espacamento_entre_linhas_min_m": 0.5,
+      "espacamento_entre_linhas_max_m": 0.5,
+      "espacamento_na_linha_min_m": 0.3,
+      "espacamento_na_linha_max_m": 0.3,
+      "tabelas": [
+        9
+      ]
+    },
+    "Tomate": {
+      "dias_para_colher_min": 120,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 1.0,
+      "espacamento_entre_linhas_max_m": 1.0,
+      "espacamento_na_linha_min_m": 0.5,
+      "espacamento_na_linha_max_m": 0.5,
+      "tabelas": [
+        8
+      ]
+    },
+    "Repolho": {
+      "dias_para_colher_min": 80,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 0.8,
+      "espacamento_entre_linhas_max_m": 0.8,
+      "espacamento_na_linha_min_m": 0.5,
+      "espacamento_na_linha_max_m": 0.5,
+      "tabelas": [
+        10
+      ]
+    },
+    "Berinjela": {
+      "dias_para_colher_min": 80,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 1.2,
+      "espacamento_entre_linhas_max_m": 1.2,
+      "espacamento_na_linha_min_m": 0.8,
+      "espacamento_na_linha_max_m": 0.8,
+      "tabelas": [
+        10
+      ]
+    },
+    "Jiló": {
+      "dias_para_colher_min": 80,
+      "dias_para_colher_max": 120,
+      "espacamento_entre_linhas_min_m": 1.2,
+      "espacamento_entre_linhas_max_m": 1.2,
+      "espacamento_na_linha_min_m": 0.8,
+      "espacamento_na_linha_max_m": 0.8,
+      "tabelas": [
+        10
+      ]
+    },
+    "Girassol": {
+      "dias_para_colher_min": 90,
+      "dias_para_colher_max": 100,
+      "tabelas": [
+        3
+      ],
+      "nota": "A fonte observa que o espaçamento varia por cultivar; para semente, cerca de 100 dias."
+    },
+    "Crotalaria Juncea": {
+      "dias_para_colher_min": 45,
+      "dias_para_colher_max": 45,
+      "espacamento_entre_linhas_min_m": 0.2,
+      "espacamento_entre_linhas_max_m": 0.2,
+      "espacamento_na_linha_min_m": 0.2,
+      "espacamento_na_linha_max_m": 0.2,
+      "tabelas": [
+        2
+      ],
+      "nota": "Colhida aos 45 dias para adubação verde."
+    }
+  }
+}
