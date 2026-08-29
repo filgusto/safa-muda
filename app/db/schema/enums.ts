@@ -66,3 +66,14 @@ export const biomaEnum = pgEnum("bioma", [
   "pampa",
   "pantanal",
 ]);
+
+/** Fase da planta que a foto retrata — ver core/fotos.ts. */
+export const tagDeFotoEnum = pgEnum("tag_de_foto", [
+  "semente",
+  "jovem",
+  "adulta",
+  "flor",
+  "fruta",
+  "raiz",
+  "misc",
+]);

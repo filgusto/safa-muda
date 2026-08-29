@@ -1,16 +1,34 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useState, useEffect, useTransition, useCallback } from "react";
-import { Search, X, Loader2 } from "lucide-react";
-import { ESTRATOS, ESTRATO_LABEL } from "@/core/estratos.ts";
 import {
-  SUCESSOES,
-  SUCESSAO_LABEL,
-  SISTEMAS,
-  SISTEMA_LABEL,
-} from "@/core/sucessao.ts";
-import { GRUPOS, GRUPO_LABEL } from "@/core/grupos.ts";
+  useState,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useTransition,
+  useCallback,
+} from "react";
+import {
+  Search,
+  X,
+  Loader2,
+  SlidersHorizontal,
+  ChevronDown,
+} from "lucide-react";
+import {
+  DIMENSOES,
+  DIMENSAO_LABEL,
+  OPCOES_FIXAS,
+  SELECAO_VAZIA,
+  alternarSelecao,
+  contarSelecionados,
+  type Dimensao,
+  type Opcao,
+  type Selecao,
+} from "./dimensoes.ts";
+import { PainelDeFiltros } from "./PainelDeFiltros.tsx";
 
 /**
  * Controles de filtro do catálogo.
@@ -18,11 +36,21 @@ import { GRUPOS, GRUPO_LABEL } from "@/core/grupos.ts";
  * O estado vive na URL, não em React state: um filtro aplicado é linkável,
  * sobrevive ao reload e funciona com o botão voltar. É também o que mantém a
  * página renderizável no servidor e indexável.
+ *
+ * Os chips e a semântica de OU dentro da categoria / E entre categorias são os
+ * mesmos da gaveta do planejador — a diferença é só onde a seleção mora
+ * (ver PainelDeFiltros.tsx).
  */
 export function FiltrosCatalogo({
   familias,
+  mostrados,
+  total,
 }: {
   familias: { familia: string; total: number }[];
+  /** Quantas espécies o servidor devolveu para os filtros atuais. */
+  mostrados: number;
+  /** Quantas existem no catálogo inteiro. */
+  total: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,137 +63,308 @@ export function FiltrosCatalogo({
   // Mantém o campo em sincronia quando a URL muda por fora (voltar, limpar).
   useEffect(() => setBusca(buscaNaUrl), [buscaNaUrl]);
 
-  const aplicar = useCallback(
-    (chave: string, valor: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (valor) params.set(chave, valor);
-      else params.delete(chave);
+  // A seleção é derivada da URL: não há cópia em estado que possa divergir.
+  const selecaoDaUrl = useMemo<Selecao>(() => {
+    const lida = { ...SELECAO_VAZIA };
+    for (const dimensao of DIMENSOES) {
+      lida[dimensao] = searchParams
+        .getAll(dimensao)
+        .flatMap((parte) => parte.split(","))
+        .map((parte) => parte.trim())
+        .filter(Boolean);
+    }
+    return lida;
+  }, [searchParams]);
 
+  // Em cima dela, uma camada otimista: no App Router a URL só muda quando o
+  // servidor devolve a lista nova, e sem isto o chip clicado ficaria apagado
+  // até lá. O React descarta a camada sozinho quando a transição termina.
+  const [selecao, preverSelecao] = useOptimistic(selecaoDaUrl);
+
+  const totalSelecionado = contarSelecionados(selecao);
+
+  // Aberto de saída quando a URL já traz filtro: quem chega por um link
+  // compartilhado precisa ver de imediato o que está filtrando.
+  const [filtrosAbertos, setFiltrosAbertos] = useState(totalSelecionado > 0);
+  const [dimensaoAberta, setDimensaoAberta] = useState<Dimensao | null>(null);
+
+  const navegar = useCallback(
+    (params: URLSearchParams, previsao?: Selecao) => {
       const query = params.toString();
       iniciarTransicao(() => {
+        if (previsao) preverSelecao(previsao);
         router.replace(query ? `${pathname}?${query}` : pathname, {
           scroll: false,
         });
       });
     },
-    [router, pathname, searchParams],
+    [router, pathname, preverSelecao],
+  );
+
+  /** Reescreve todas as dimensões de uma vez, preservando a busca. */
+  const aplicarSelecao = useCallback(
+    (nova: Selecao) => {
+      const params = new URLSearchParams();
+      const termo = searchParams.get("busca");
+      if (termo) params.set("busca", termo);
+      for (const dimensao of DIMENSOES) {
+        for (const valor of nova[dimensao]) params.append(dimensao, valor);
+      }
+      navegar(params, nova);
+    },
+    [navegar, searchParams],
+  );
+
+  const alternar = useCallback(
+    (dimensao: Dimensao, valor: string) =>
+      aplicarSelecao(alternarSelecao(selecao, dimensao, valor)),
+    [aplicarSelecao, selecao],
+  );
+
+  const limparDimensao = useCallback(
+    (dimensao: Dimensao) => aplicarSelecao({ ...selecao, [dimensao]: [] }),
+    [aplicarSelecao, selecao],
   );
 
   // Debounce da busca: evita uma consulta por tecla digitada.
   useEffect(() => {
     if (busca === buscaNaUrl) return;
-    const temporizador = setTimeout(() => aplicar("busca", busca), 300);
+    const temporizador = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (busca) params.set("busca", busca);
+      else params.delete("busca");
+      navegar(params);
+    }, 300);
     return () => clearTimeout(temporizador);
-  }, [busca, buscaNaUrl, aplicar]);
+  }, [busca, buscaNaUrl, navegar, searchParams]);
 
-  const temFiltro = Array.from(searchParams.keys()).length > 0;
+  const opcoesPorDimensao = useMemo<Record<Dimensao, Opcao[]>>(
+    () => ({
+      ...OPCOES_FIXAS,
+      familia: familias.map((linha) => ({
+        valor: linha.familia,
+        rotulo: `${linha.familia} (${linha.total})`,
+      })),
+    }),
+    [familias],
+  );
+
+  /** Rótulo de um valor já escolhido, para o resumo abaixo da barra. */
+  const rotuloDe = (dimensao: Dimensao, valor: string) =>
+    opcoesPorDimensao[dimensao].find((opcao) => opcao.valor === valor)
+      ?.rotulo ?? valor;
+
+  const temFiltro = totalSelecionado > 0 || buscaNaUrl !== "";
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
-        <Search
-          size={16}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          value={busca}
-          onChange={(evento) => setBusca(evento.target.value)}
-          placeholder="Buscar por nome comum, científico ou família…"
-          aria-label="Buscar espécie"
-          className="w-full rounded-md border border-border bg-input py-2 pl-9 pr-9 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        />
-        {pendente && (
-          <Loader2
-            size={14}
-            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground"
-          />
-        )}
-      </div>
+    <div className="overflow-hidden rounded-xl border border-bg-border bg-bg-surface1/40">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2">
+        {/* A contagem abre a barra: é o resultado do que os controles à direita
+            dela acabam de fazer. */}
+        <p
+          aria-live="polite"
+          className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground"
+        >
+          <span className="metric">{mostrados}</span>
+          {mostrados === total ? " espécies" : ` de ${total} espécies`}
+        </p>
 
-      <div className="flex flex-wrap gap-2">
-        <Seletor
-          rotulo="Estrato"
-          valor={searchParams.get("estrato") ?? ""}
-          onChange={(valor) => aplicar("estrato", valor)}
-          opcoes={ESTRATOS.map((e) => ({ valor: e, rotulo: ESTRATO_LABEL[e] }))}
+        <button
+          type="button"
+          onClick={() =>
+            setFiltrosAbertos((antes) => {
+              if (antes) setDimensaoAberta(null);
+              return !antes;
+            })
+          }
+          aria-expanded={filtrosAbertos}
+          aria-controls="filtros-do-catalogo"
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider transition-colors duration-240 ${
+            filtrosAbertos || totalSelecionado > 0
+              ? "border-primary/50 bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <SlidersHorizontal size={13} />
+          Filtros
+          {totalSelecionado > 0 && (
+            <span className="metric text-[0.6rem]">{totalSelecionado}</span>
+          )}
+          <ChevronDown
+            size={12}
+            aria-hidden
+            className={`transition-transform duration-240 motion-reduce:transition-none ${
+              filtrosAbertos ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        <CampoDePesquisa
+          valor={busca}
+          onChange={setBusca}
+          pendente={pendente}
         />
-        <Seletor
-          rotulo="Sucessão"
-          valor={searchParams.get("sucessao") ?? ""}
-          onChange={(valor) => aplicar("sucessao", valor)}
-          opcoes={SUCESSOES.map((s) => ({
-            valor: s,
-            rotulo: SUCESSAO_LABEL[s],
-          }))}
-        />
-        <Seletor
-          rotulo="Sistema"
-          valor={searchParams.get("sistema") ?? ""}
-          onChange={(valor) => aplicar("sistema", valor)}
-          opcoes={SISTEMAS.map((s) => ({ valor: s, rotulo: SISTEMA_LABEL[s] }))}
-        />
-        <Seletor
-          rotulo="Grupo"
-          valor={searchParams.get("grupo") ?? ""}
-          onChange={(valor) => aplicar("grupo", valor)}
-          opcoes={GRUPOS.map((g) => ({ valor: g, rotulo: GRUPO_LABEL[g] }))}
-        />
-        <Seletor
-          rotulo="Família"
-          valor={searchParams.get("familia") ?? ""}
-          onChange={(valor) => aplicar("familia", valor)}
-          opcoes={familias.map((f) => ({
-            valor: f.familia,
-            rotulo: `${f.familia} (${f.total})`,
-          }))}
-        />
+
+        {/*
+          Resumo dos filtros ativos: com a gaveta recolhida ele é a única pista
+          do que está valendo — e cada chip daqui também desliga o seu filtro.
+        */}
+        {DIMENSOES.flatMap((dimensao) =>
+          selecao[dimensao].map((valor) => (
+            <button
+              key={`${dimensao}:${valor}`}
+              type="button"
+              onClick={() => alternar(dimensao, valor)}
+              aria-label={`Remover filtro ${DIMENSAO_LABEL[dimensao]}: ${rotuloDe(dimensao, valor)}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/60 bg-primary/15 py-0.5 pl-2.5 pr-2 font-mono text-[0.65rem] uppercase tracking-wider text-primary transition-colors duration-240 hover:bg-primary/25"
+            >
+              {rotuloDe(dimensao, valor)}
+              <X size={11} aria-hidden />
+            </button>
+          )),
+        )}
 
         {temFiltro && (
           <button
             type="button"
-            onClick={() => iniciarTransicao(() => router.replace(pathname))}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors duration-240 hover:text-foreground"
+            onClick={() => {
+              setDimensaoAberta(null);
+              iniciarTransicao(() => {
+                preverSelecao(SELECAO_VAZIA);
+                router.replace(pathname);
+              });
+            }}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground transition-colors duration-240 hover:text-foreground"
           >
             <X size={12} />
             Limpar
           </button>
         )}
       </div>
+
+      <PainelDeFiltros
+        aberto={filtrosAbertos}
+        id="filtros-do-catalogo"
+        dimensaoAberta={dimensaoAberta}
+        onAbrirDimensao={setDimensaoAberta}
+        selecao={selecao}
+        opcoesPorDimensao={opcoesPorDimensao}
+        onAlternar={alternar}
+        onLimparDimensao={limparDimensao}
+        onLimparTudo={() => aplicarSelecao(SELECAO_VAZIA)}
+        totalSelecionado={totalSelecionado}
+      />
     </div>
   );
 }
 
-function Seletor({
-  rotulo,
+/**
+ * Botão que vira campo de busca.
+ *
+ * Fechado é só a pastilha "Pesquisar"; aberto, a mesma pastilha cresce até a
+ * largura do campo, com a lupa parada à esquerda — o mesmo gesto dos chips de
+ * família (ver PainelDeFiltros.tsx), pela mesma razão: a barra é uma linha de
+ * controles do mesmo tamanho, e uma caixa de texto permanente a quebraria.
+ *
+ * A filtragem acontece enquanto se digita: quem chama aplica o termo na URL
+ * com debounce.
+ */
+function CampoDePesquisa({
   valor,
   onChange,
-  opcoes,
+  pendente,
 }: {
-  rotulo: string;
   valor: string;
   onChange: (valor: string) => void;
-  opcoes: { valor: string; rotulo: string }[];
+  pendente: boolean;
 }) {
-  const ativo = valor !== "";
+  // Chega aberto quando a URL já traz um termo: o campo precisa mostrar o que
+  // está filtrando a lista.
+  const [aberto, setAberto] = useState(valor !== "");
+  const campo = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (aberto) campo.current?.focus();
+  }, [aberto]);
+
   return (
-    <select
-      value={valor}
-      onChange={(evento) => onChange(evento.target.value)}
-      aria-label={rotulo}
-      className={`rounded-md border bg-bg-surface1 px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors duration-240 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-        ativo
-          ? "border-primary/50 text-primary"
-          : "border-border text-muted-foreground hover:text-foreground"
+    <div
+      className={`relative h-[26px] shrink-0 overflow-hidden rounded-md border transition-[width,border-color] duration-320 ease-bio-ease motion-reduce:transition-none ${
+        aberto
+          ? "w-64 border-primary/60 bg-input sm:w-80"
+          : "w-[7.5rem] border-border bg-transparent"
       }`}
     >
-      <option value="">{rotulo}</option>
-      {opcoes.map((opcao) => (
-        <option key={opcao.valor} value={opcao.valor}>
-          {opcao.rotulo}
-        </option>
-      ))}
-    </select>
+      <Search
+        size={13}
+        aria-hidden
+        className={`pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 transition-colors duration-240 ${
+          aberto ? "text-primary" : "text-muted-foreground"
+        }`}
+      />
+
+      <input
+        ref={campo}
+        type="text"
+        value={valor}
+        onChange={(evento) => onChange(evento.target.value)}
+        // Sai o foco, recolhe — mas só quando está vazio: retrair com termo
+        // digitado esconderia uma busca que segue valendo.
+        onBlur={() => {
+          if (!valor.trim()) setAberto(false);
+        }}
+        onKeyDown={(evento) => {
+          if (evento.key === "Escape") {
+            onChange("");
+            setAberto(false);
+          }
+        }}
+        tabIndex={aberto ? undefined : -1}
+        placeholder="Nome comum, científico ou família…"
+        aria-label="Buscar espécie"
+        className={`h-full w-full bg-transparent pl-8 pr-8 text-sm text-foreground outline-none transition-opacity duration-240 ${
+          aberto ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      {aberto &&
+        (pendente ? (
+          <Loader2
+            size={13}
+            aria-hidden
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground"
+          />
+        ) : (
+          valor !== "" && (
+            <button
+              type="button"
+              // `onMouseDown` barrado: sem isso o clique tiraria o foco do campo
+              // e o `onBlur` o recolheria antes mesmo de limpar.
+              onMouseDown={(evento) => evento.preventDefault()}
+              onClick={() => {
+                onChange("");
+                campo.current?.focus();
+              }}
+              aria-label="Limpar a busca"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full text-muted-foreground transition-colors duration-240 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <X size={13} />
+            </button>
+          )
+        ))}
+
+      {/* Fechado, um botão sobreposto cobre a pastilha inteira e recebe o
+          clique e o foco — o input abaixo fica fora da ordem de tabulação. */}
+      {!aberto && (
+        <button
+          type="button"
+          onClick={() => setAberto(true)}
+          aria-expanded={false}
+          className="absolute inset-0 flex items-center pl-8 font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground transition-colors duration-240 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          Pesquisar
+        </button>
+      )}
+    </div>
   );
 }

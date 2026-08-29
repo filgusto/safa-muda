@@ -43,6 +43,34 @@
       "when": 1786287365855,
       "tag": "0005_diario_de_campo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787943582244,
+      "tag": "0006_fotos_de_especie",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787944261520,
+      "tag": "0007_tag_da_foto",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787944712965,
+      "tag": "0008_tags_flor_e_fruta",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787944923384,
+      "tag": "0009_tag_raiz",
+      "breakpoints": true
     }
   ]
 }

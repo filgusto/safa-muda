@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/footer";
 import { SiteNav } from "@/components/layout/SiteNav";
 import { NavProvider } from "@/components/layout/NavContext";
 import { MenuDoUsuario } from "@/components/layout/MenuDoUsuario";
+import { ID_CONTEUDO_DO_SITE } from "@/components/layout/conteudoDoSite";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -65,9 +66,19 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NavProvider>
-            <SiteNav menu={<MenuDoUsuario />} />
-            <main className="flex-1">{children}</main>
-            <Footer />
+            {/*
+              `data-desfocado` é ligado pelo modal da ficha. Desfocar o conteúdo
+              custa uma rasterização; desfocar o fundo pelo overlay custa uma por
+              quadro. Ver o comentário em `ModalDaEspecie`.
+            */}
+            <div
+              id={ID_CONTEUDO_DO_SITE}
+              className="flex flex-1 flex-col data-[desfocado=true]:blur-md"
+            >
+              <SiteNav menu={<MenuDoUsuario />} />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
           </NavProvider>
         </ThemeProvider>
       </body>

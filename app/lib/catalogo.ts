@@ -5,12 +5,14 @@ import {
   eq,
   lte,
   inArray,
+  isNotNull,
   asc,
   sql,
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/index.ts";
-import { species, type Species } from "@/db/schema/species.ts";
+import { species, speciesFoto, type Species } from "@/db/schema/species.ts";
+import { media } from "@/db/schema/media.ts";
 import { ESTRATOS, type Estrato } from "@/core/estratos.ts";
 import {
   SUCESSOES,
@@ -20,6 +22,7 @@ import {
 } from "@/core/sucessao.ts";
 import { GRUPOS, type Grupo } from "@/core/grupos.ts";
 import { lerFaixaDeColheita, type FaixaDeColheita } from "@/core/colheita.ts";
+import { ordemDaTag, type TagDeFoto } from "@/core/fotos.ts";
 
 /**
  * Consultas do catálogo público.
@@ -137,14 +140,89 @@ function montarCondicoes(filtros: FiltrosCatalogo): SQL | undefined {
   return condicoes.length ? and(...condicoes) : undefined;
 }
 
+/** Foto como o catálogo público a consome: chave do objeto e texto alternativo. */
+export interface FotoDaEspecie {
+  id: string;
+  key: string;
+  alt: string | null;
+  legenda: string | null;
+  credito: string;
+  tag: TagDeFoto;
+}
+
+/**
+ * Ordena pela fase da planta (semente → jovem → adulta → misc) e, dentro dela,
+ * pela ordem manual. A comparação vive em core/fotos.ts; aqui só se aplica.
+ */
+function porFase<T extends { tag: TagDeFoto }>(fotos: T[]): T[] {
+  return [...fotos].sort((a, b) => ordemDaTag(a.tag) - ordemDaTag(b.tag));
+}
+
+/** Espécie com a foto que ilustra o card — `null` quando não há nenhuma. */
+export type EspecieComFoto = Species & { foto: FotoDaEspecie | null };
+
+/**
+ * A foto que ilustra cada espécie: a primeira aprovada, por `ordem`.
+ *
+ * `distinct on` deixa o banco escolher uma por espécie. Trazer todas as fotos
+ * para filtrar em JS traria centenas de linhas só para descartar quase todas
+ * numa grade que mostra uma por card.
+ */
+async function fotosPrincipais(
+  ids: string[],
+): Promise<Map<string, FotoDaEspecie>> {
+  if (ids.length === 0) return new Map();
+
+  const linhas = await db
+    .selectDistinctOn([speciesFoto.speciesId], {
+      speciesId: speciesFoto.speciesId,
+      id: speciesFoto.id,
+      key: media.key,
+      alt: media.alt,
+      legenda: speciesFoto.legenda,
+      credito: speciesFoto.credito,
+      tag: speciesFoto.tag,
+    })
+    .from(speciesFoto)
+    .innerJoin(media, eq(media.id, speciesFoto.mediaId))
+    .where(
+      and(
+        inArray(speciesFoto.speciesId, ids),
+        isNotNull(speciesFoto.aprovadaEm),
+      ),
+    )
+    // A foto do card é a da planta adulta quando existe — a forma em que a
+    // espécie é reconhecida de longe — e o que se colhe vem logo atrás, que é
+    // como se reconhece de perto: fruto, e depois raiz, para a mandioca da vida. A ordem aqui é a do reconhecimento, não a do
+    // desenvolvimento (essa é a de core/fotos.ts, usada na galeria). `array_position` no enum reproduz a mesma
+    // ordem de core/fotos.ts, para o banco poder escolher uma por espécie.
+    .orderBy(
+      asc(speciesFoto.speciesId),
+      sql`array_position(array['adulta','fruta','raiz','flor','jovem','semente','misc']::tag_de_foto[], ${speciesFoto.tag})`,
+      asc(speciesFoto.ordem),
+      asc(speciesFoto.criadoEm),
+    );
+
+  return new Map(
+    linhas.map(({ speciesId, ...foto }) => [speciesId, foto as FotoDaEspecie]),
+  );
+}
+
 export async function buscarEspecies(
   filtros: FiltrosCatalogo,
-): Promise<Species[]> {
-  return db
+): Promise<EspecieComFoto[]> {
+  const especies = await db
     .select()
     .from(species)
     .where(montarCondicoes(filtros))
     .orderBy(asc(species.nomeComum));
+
+  const fotos = await fotosPrincipais(especies.map((especie) => especie.id));
+
+  return especies.map((especie) => ({
+    ...especie,
+    foto: fotos.get(especie.id) ?? null,
+  }));
 }
 
 export async function contarEspecies(): Promise<number> {
@@ -158,6 +236,47 @@ export async function buscarEspeciePorSlug(
   slug: string,
 ): Promise<Species | undefined> {
   return db.query.species.findFirst({ where: eq(species.slug, slug) });
+}
+
+/**
+ * Fotos de uma espécie. Só as aprovadas, salvo quando `incluirPendentes` — o
+ * que a página de gestão usa para a moderação enxergar a fila.
+ */
+export async function listarFotosDaEspecie(
+  speciesId: string,
+  incluirPendentes = false,
+): Promise<
+  (FotoDaEspecie & { aprovada: boolean; enviadaPor: string | null })[]
+> {
+  const linhas = await db
+    .select({
+      id: speciesFoto.id,
+      key: media.key,
+      alt: media.alt,
+      legenda: speciesFoto.legenda,
+      credito: speciesFoto.credito,
+      tag: speciesFoto.tag,
+      aprovadaEm: speciesFoto.aprovadaEm,
+      enviadaPor: speciesFoto.enviadaPor,
+    })
+    .from(speciesFoto)
+    .innerJoin(media, eq(media.id, speciesFoto.mediaId))
+    .where(
+      incluirPendentes
+        ? eq(speciesFoto.speciesId, speciesId)
+        : and(
+            eq(speciesFoto.speciesId, speciesId),
+            isNotNull(speciesFoto.aprovadaEm),
+          ),
+    )
+    .orderBy(asc(speciesFoto.ordem), asc(speciesFoto.criadoEm));
+
+  return porFase(
+    linhas.map(({ aprovadaEm, ...foto }) => ({
+      ...foto,
+      aprovada: aprovadaEm !== null,
+    })),
+  );
 }
 
 export async function listarSlugs(): Promise<string[]> {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Species } from "@/db/schema/species.ts";
+import type { EspecieComFoto } from "@/lib/catalogo.ts";
 import { ESTRATO_LABEL, type Estrato } from "@/core/estratos.ts";
 import {
   SUCESSAO_LABEL,
@@ -15,31 +15,31 @@ import { GRUPO_LABEL, type Grupo } from "@/core/grupos.ts";
  * Campo sem valor aparece como "não informado", nunca em branco nem preenchido
  * por estimativa — é a regra de ouro dos dados tornada visível.
  */
-export function CardEspecie({ especie }: { especie: Species }) {
+export function CardEspecie({ especie }: { especie: EspecieComFoto }) {
   return (
     <Link
       href={`/catalogo/${especie.slug}`}
-      className="group flex h-full flex-col rounded-xl border border-bg-border bg-bg-surface1 p-5 transition-all duration-320 hover:border-primary/50"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-bg-border bg-bg-surface1 p-5 transition-all duration-320 hover:border-primary/50"
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="truncate font-semibold leading-snug text-foreground transition-colors duration-240 group-hover:text-primary">
-            {especie.nomeComum}
-          </h2>
-          <p className="truncate font-mono text-xs italic text-secondary">
-            {especie.nomeCientifico}
-          </p>
-        </div>
-        {especie.estrato && <PastilhaEstrato estrato={especie.estrato} />}
+      {especie.foto && <FotoDeFundo foto={especie.foto} />}
+
+      <div className="relative mb-3 min-w-0">
+        <h2 className="truncate font-semibold leading-snug text-foreground transition-colors duration-240 group-hover:text-primary">
+          {especie.nomeComum}
+        </h2>
+        <p className="truncate font-mono text-xs text-secondary">
+          <span className="italic">{especie.nomeCientifico}</span>
+          {especie.familia && <span> — {especie.familia}</span>}
+        </p>
       </div>
 
-      <dl className="mb-4 space-y-1 text-xs">
+      <dl className="relative mb-4 space-y-1 text-xs">
+        <Linha rotulo="Estrato" valor={rotuloEstrato(especie.estrato)} />
         <Linha rotulo="Sucessão" valor={rotuloSucessao(especie.sucessao)} />
         <Linha rotulo="Sistema" valor={rotuloSistema(especie.sistema)} />
-        <Linha rotulo="Família" valor={especie.familia} />
       </dl>
 
-      <div className="mt-auto flex flex-wrap gap-1.5">
+      <div className="relative mt-auto flex flex-wrap gap-1.5">
         {especie.grupos.map((grupo) => (
           <span
             key={grupo}
@@ -50,6 +50,26 @@ export function CardEspecie({ especie }: { especie: Species }) {
         ))}
       </div>
     </Link>
+  );
+}
+
+/**
+ * A foto ocupa a metade direita do card e se dissolve para a esquerda: o
+ * degradê termina opaco na cor da superfície, onde ficam nome e campos, para
+ * que o texto continue legível sobre qualquer imagem.
+ */
+function FotoDeFundo({ foto }: { foto: NonNullable<EspecieComFoto["foto"]> }) {
+  return (
+    <div className="pointer-events-none absolute inset-y-0 right-0 w-3/5 select-none">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/media/${foto.key}`}
+        alt={foto.alt ?? ""}
+        loading="lazy"
+        className="h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-bg-surface1 from-15% via-bg-surface1/70 to-transparent" />
+    </div>
   );
 }
 
@@ -91,6 +111,10 @@ export function PastilhaEstrato({ estrato }: { estrato: Estrato }) {
       {ESTRATO_LABEL[estrato]}
     </span>
   );
+}
+
+export function rotuloEstrato(valor: string | null): string | null {
+  return valor ? (ESTRATO_LABEL[valor as Estrato] ?? valor) : null;
 }
 
 export function rotuloSucessao(valor: string | null): string | null {
