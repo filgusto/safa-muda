@@ -1,0 +1,1 @@
+ALTER TYPE "public"."tag_de_foto" ADD VALUE 'raiz' BEFORE 'misc';

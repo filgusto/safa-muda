@@ -33,35 +33,23 @@ export default async function CatalogoPage({
     listarFamilias(),
   ]);
 
-  const filtrado = especies.length !== total;
-
   return (
-    <main className="container mx-auto max-w-7xl px-6 py-16">
-      <header className="mb-10 space-y-3">
-        <span className="font-mono text-xs uppercase tracking-widest text-primary">
-          Catálogo
-        </span>
+    <main className="container mx-auto max-w-7xl px-6 pb-16 pt-6">
+      <header className="mb-6">
         <h1 className="font-serif text-display-md font-semibold tracking-tight">
-          Espécies agroflorestais
+          Leafdex - Catálogo de plantas
         </h1>
-        <p className="max-w-[60ch] leading-[1.7] text-muted-foreground">
-          Cada espécie traz o andar que ocupa no espaço (estrato) e o momento em
-          que entra no tempo (sucessão). Campos que as fontes não informam
-          aparecem como <em>não informado</em> — nunca preenchidos por
-          estimativa.
-        </p>
       </header>
 
       <div className="mb-8">
         <Suspense fallback={<div className="h-24" />}>
-          <FiltrosCatalogo familias={familias} />
+          <FiltrosCatalogo
+            familias={familias}
+            mostrados={especies.length}
+            total={total}
+          />
         </Suspense>
       </div>
-
-      <p className="mb-6 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        <span className="metric">{especies.length}</span>
-        {filtrado ? ` de ${total} espécies` : " espécies"}
-      </p>
 
       {especies.length === 0 ? (
         <p className="rounded-xl border border-bg-border bg-bg-surface1 p-8 text-center text-sm text-muted-foreground">
