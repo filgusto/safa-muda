@@ -7,6 +7,7 @@ import {
   uuid,
   jsonb,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 import {
   estratoEnum,
@@ -14,8 +15,10 @@ import {
   sistemaEnum,
   grupoEnum,
   biomaEnum,
+  tagDeFotoEnum,
 } from "./enums.ts";
 import { user } from "./auth.ts";
+import { media } from "./media.ts";
 
 /**
  * Catálogo de espécies.
@@ -93,3 +96,60 @@ export const species = pgTable(
 
 export type Species = typeof species.$inferSelect;
 export type NovaSpecies = typeof species.$inferInsert;
+
+/**
+ * Fotos de uma espécie.
+ *
+ * Uma espécie tem várias; a primeira por `ordem` é a que ilustra o card do
+ * catálogo. O arquivo em si vive em `media` (MinIO) — aqui fica só o vínculo,
+ * a legenda e o crédito.
+ *
+ * `credito` é obrigatório de propósito: foto sem autoria declarada é dado sem
+ * proveniência, e a regra de ouro do projeto vale para imagem também
+ * (CONTRIBUTING.md). Quem fotografou, ou de onde veio e sob qual licença.
+ *
+ * Só aparece no catálogo público depois de `aprovadaEm` — mesma porta de
+ * moderação que a wiki usa para os campos. Envio de moderador já entra
+ * aprovado.
+ */
+export const speciesFoto = pgTable(
+  "species_media",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    speciesId: uuid("species_id")
+      .notNull()
+      .references(() => species.id, { onDelete: "cascade" }),
+    mediaId: uuid("media_id")
+      .notNull()
+      .references(() => media.id, { onDelete: "cascade" }),
+
+    /**
+     * Fase da planta que a foto retrata. Obrigatória: uma foto de semente e uma
+     * de árvore adulta não são intercambiáveis para quem tenta identificar a
+     * planta no campo, e a galeria se organiza por ela.
+     */
+    tag: tagDeFotoEnum("tag").notNull(),
+
+    legenda: text("legenda"),
+    credito: text("credito").notNull(),
+
+    /** Menor primeiro; empate desempata pela data de envio. */
+    ordem: integer("ordem").notNull().default(0),
+
+    aprovadaEm: timestamp("aprovada_em"),
+    aprovadaPor: text("aprovada_por").references(() => user.id, {
+      onDelete: "set null",
+    }),
+
+    enviadaPor: text("enviada_por").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    criadoEm: timestamp("criado_em").notNull().defaultNow(),
+  },
+  (tabela) => [
+    index("species_media_species_idx").on(tabela.speciesId),
+    unique("species_media_unico").on(tabela.speciesId, tabela.mediaId),
+  ],
+);
+
+export type SpeciesFoto = typeof speciesFoto.$inferSelect;
