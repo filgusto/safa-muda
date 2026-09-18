@@ -19,9 +19,13 @@ import { Dica } from "@/components/ui/tooltip.tsx";
 import { DialogoDeConfirmacao } from "@/components/wiki/DialogoDeConfirmacao.tsx";
 import { avisar } from "@/components/layout/AvisoNoTopo.tsx";
 import { proporEdicoesEmLote } from "@/app/actions/wiki.ts";
-import { adicionarFoto, importarFotoDoWikimedia } from "@/app/actions/fotos.ts";
+import {
+  adicionarFoto,
+  definirFotoPrincipal,
+  importarFotoDoWikimedia,
+} from "@/app/actions/fotos.ts";
 import { enviarMidia } from "@/lib/enviar-midia.ts";
-import { useSession } from "@/lib/auth-client.ts";
+import { useSessaoHidratada } from "@/lib/auth-client.ts";
 import { cn } from "@/lib/utils.ts";
 import type { TagDeFoto } from "@/core/fotos.ts";
 import {
@@ -77,7 +81,13 @@ type ModoDeEdicao = {
   fotos: FotoPendente[];
   incluirFoto: (foto: NovaFotoPendente) => void;
   tirarFoto: (id: string) => void;
-  /** Alterações aplicadas + fotos. Um editor aberto não conta. */
+  /**
+   * Foto já publicada escolhida como principal neste rascunho — só a
+   * administração escolhe. `null` mantém a atual.
+   */
+  fotoPrincipal: string | null;
+  escolherFotoPrincipal: (id: string | null) => void;
+  /** Alterações aplicadas + fotos + troca da principal. Um editor aberto não conta. */
   quantidade: number;
   /** Há algo a perder se o modo for encerrado agora? */
   temAlteracoes: boolean;
@@ -121,6 +131,7 @@ export function ProvedorDoModoDeEdicao({
     Record<string, AlteracaoDeCampo>
   >({});
   const [fotos, setFotos] = useState<FotoPendente[]>([]);
+  const [fotoPrincipal, escolherFotoPrincipal] = useState<string | null>(null);
 
   // A prévia de upload é um object URL: sem revogar, cada foto descartada
   // vaza memória. A do Commons é a miniatura do próprio Wikimedia — nada a
@@ -129,7 +140,8 @@ export function ProvedorDoModoDeEdicao({
   fotosAtuais.current = fotos;
   useEffect(() => () => fotosAtuais.current.forEach(revogarPreviaSeLocal), []);
 
-  const quantidade = Object.keys(alteracoes).length + fotos.length;
+  const quantidade =
+    Object.keys(alteracoes).length + fotos.length + (fotoPrincipal ? 1 : 0);
   const temAlteracoes = quantidade > 0 || campoAberto !== null;
 
   // Recarregar ou sair do site com rascunho pendente pede confirmação ao
@@ -145,6 +157,7 @@ export function ProvedorDoModoDeEdicao({
     fotosAtuais.current.forEach(revogarPreviaSeLocal);
     setFotos([]);
     setAlteracoes({});
+    escolherFotoPrincipal(null);
     abrirCampo(null);
     setAtivo(false);
   }, []);
@@ -158,9 +171,10 @@ export function ProvedorDoModoDeEdicao({
   }, []);
 
   /**
-   * Campos primeiro, numa proposta por fonte e numa transação só; depois as
-   * fotos, uma a uma, porque cada uma sobe ao MinIO. Se uma foto falhar, o que
-   * já foi enviado sai do rascunho e o resto fica para tentar de novo.
+   * Campos primeiro, numa proposta por fonte e numa transação só; depois a
+   * troca da foto principal; por fim as fotos novas, uma a uma, porque cada
+   * uma sobe ao MinIO. Se algo falhar, o que já foi enviado sai do rascunho e
+   * o resto fica para tentar de novo.
    */
   async function enviar(): Promise<Resultado> {
     const entradas = Object.entries(alteracoes);
@@ -173,6 +187,17 @@ export function ProvedorDoModoDeEdicao({
         return { ok: false, erro: resultado.erro ?? "Falha no envio." };
       }
       setAlteracoes({});
+    }
+
+    if (fotoPrincipal) {
+      const resultado = await definirFotoPrincipal(fotoPrincipal);
+      if (!resultado.ok) {
+        return {
+          ok: false,
+          erro: resultado.erro ?? "Falha ao trocar a foto principal.",
+        };
+      }
+      escolherFotoPrincipal(null);
     }
 
     for (const foto of fotos) {
@@ -214,9 +239,14 @@ export function ProvedorDoModoDeEdicao({
       }
     }
 
+    // Só a troca da principal, que é da administração e entra direto: não há
+    // nada indo para a fila de avaliação.
+    const soAPrincipal = entradas.length === 0 && fotos.length === 0;
     descartar();
     avisar(
-      `Suas propostas de modificação para a espécie ${nomeDaEspecie} foram enviadas à equipe do Safa Muda. Você receberá uma confirmação de incorporação ou rejeição das modificações em seu e-mail cadastrado.`,
+      soAPrincipal
+        ? `A foto principal de ${nomeDaEspecie} foi atualizada.`
+        : `Suas propostas de modificação para a espécie ${nomeDaEspecie} foram enviadas à equipe do Safa Muda. Você receberá uma confirmação de incorporação ou rejeição das modificações em seu e-mail cadastrado.`,
     );
     // Fotos da equipe entram publicadas; as demais ficam na fila.
     router.refresh();
@@ -253,6 +283,8 @@ export function ProvedorDoModoDeEdicao({
             { ...foto, id: crypto.randomUUID() },
           ]),
         tirarFoto,
+        fotoPrincipal,
+        escolherFotoPrincipal,
         quantidade,
         temAlteracoes,
         descartar,
@@ -307,7 +339,7 @@ export function ForaDoModoDeEdicao({
  * únicos jeitos de sair do modo, cada um com sua confirmação.
  */
 export function BotaoDeEdicao() {
-  const { data: sessao } = useSession();
+  const { data: sessao } = useSessaoHidratada();
   const { ativo } = useModoDeEdicao();
 
   if (!sessao) return null;
@@ -369,6 +401,7 @@ function BarraDeEdicao() {
     campoAberto,
     alteracoes,
     fotos,
+    fotoPrincipal,
     descartar,
     enviar,
   } = useModoDeEdicao();
@@ -400,6 +433,7 @@ function BarraDeEdicao() {
       (alteracao) => `${alteracao.rotulo}: ${alteracao.resumo}`,
     ),
     ...fotos.map((foto) => `Foto nova: ${foto.credito}`),
+    ...(fotoPrincipal ? ["Nova foto principal da espécie"] : []),
   ];
 
   return (

@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { TAG_DE_FOTO_LABEL } from "@/core/fotos.ts";
+import { X, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { TAG_DE_FOTO_LABEL, escolherFotoPrincipal } from "@/core/fotos.ts";
 import type { FotoDaEspecie } from "@/lib/catalogo.ts";
+import { useModoDeEdicao } from "@/components/wiki/ModoDeEdicao.tsx";
+import { useSessaoHidratada } from "@/lib/auth-client.ts";
+import { cn } from "@/lib/utils.ts";
 import {
   medirPercurso,
   semAnimacao,
@@ -28,6 +31,10 @@ import {
  * O visor cresce da própria miniatura clicada e volta para ela ao fechar, como
  * o modal da ficha faz com o card da grade (ver percursoDoModal.ts). Sem isso a
  * imagem parece vir de fora da tela, e o olho perde de onde ela saiu.
+ *
+ * No modo de edição, a administração vê uma estrela em cada miniatura: a
+ * preenchida marca a foto que ilustra o card e o cabeçalho da ficha, e clicar
+ * noutra troca a escolha no rascunho (ver ModoDeEdicao.tsx).
  */
 export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
   const [aberta, setAberta] = useState<number | null>(null);
@@ -36,6 +43,12 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
   const overlay = useRef<HTMLDivElement | null>(null);
   const indiceAberto = useRef<number | null>(null);
   indiceAberto.current = aberta;
+
+  const { data: sessao } = useSessaoHidratada();
+  const edicao = useModoDeEdicao();
+  const escolhendoPrincipal = edicao.ativo && sessao?.user.role === "admin";
+  const principalSalva = escolherFotoPrincipal(fotos)?.id ?? null;
+  const principal = edicao.fotoPrincipal ?? principalSalva;
 
   /** A miniatura de onde o visor sai — e para onde volta. */
   const origem = useCallback(
@@ -151,7 +164,7 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
     <>
       <ul className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
         {fotos.map((foto, indice) => (
-          <li key={foto.id} className="shrink-0 snap-start">
+          <li key={foto.id} className="relative shrink-0 snap-start">
             <button
               type="button"
               ref={(elemento) => {
@@ -171,6 +184,18 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
                 {TAG_DE_FOTO_LABEL[foto.tag]}
               </span>
             </button>
+            {escolhendoPrincipal && (
+              <EstrelaDePrincipal
+                marcada={foto.id === principal}
+                onClick={() =>
+                  // Voltar à que já está salva é desfazer a troca, não uma
+                  // troca a mais no rascunho.
+                  edicao.escolherFotoPrincipal(
+                    foto.id === principalSalva ? null : foto.id,
+                  )
+                }
+              />
+            )}
           </li>
         ))}
       </ul>
@@ -244,6 +269,42 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
         </Dialog.Portal>
       </Dialog.Root>
     </>
+  );
+}
+
+/**
+ * Fora do botão da miniatura, e não dentro: botão dentro de botão é HTML
+ * inválido, e o clique na estrela abriria o visor junto.
+ */
+function EstrelaDePrincipal({
+  marcada,
+  onClick,
+}: {
+  marcada: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={marcada}
+      aria-label={
+        marcada ? "Foto principal da espécie" : "Usar como foto principal"
+      }
+      title={marcada ? "Foto principal" : "Usar como foto principal"}
+      className="absolute right-1.5 top-1.5 rounded-full border border-bg-border/60 bg-bg-base/75 p-1 transition-transform duration-240 hover:scale-110 active:scale-95"
+    >
+      <Star
+        size={16}
+        fill={marcada ? "currentColor" : "none"}
+        className={cn(
+          "transition-colors duration-240",
+          marcada
+            ? "text-amber-400"
+            : "text-foreground/80 hover:text-amber-400",
+        )}
+      />
+    </button>
   );
 }
 

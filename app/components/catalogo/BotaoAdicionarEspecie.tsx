@@ -3,7 +3,7 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
-import { useSession } from "@/lib/auth-client.ts";
+import { useSessaoHidratada } from "@/lib/auth-client.ts";
 import { FormularioEspecie } from "@/components/wiki/FormularioEspecie.tsx";
 
 /**
@@ -19,7 +19,7 @@ import { FormularioEspecie } from "@/components/wiki/FormularioEspecie.tsx";
  * própria, para quem chega por link direto ou sem JS.
  */
 export function BotaoAdicionarEspecie() {
-  const { data: sessao } = useSession();
+  const { data: sessao } = useSessaoHidratada();
   const [aberto, setAberto] = useState(false);
 
   if (!sessao) return null;

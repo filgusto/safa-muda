@@ -7,6 +7,7 @@ import {
   inArray,
   isNotNull,
   asc,
+  desc,
   sql,
   type SQL,
 } from "drizzle-orm";
@@ -35,8 +36,8 @@ import {
 } from "@/core/poda.ts";
 import { lerFaixaDeColheita, type FaixaDeColheita } from "@/core/colheita.ts";
 import {
+  escolherFotoPrincipal,
   ordemDaTag,
-  ordemDeReconhecimento,
   type TagDeFoto,
 } from "@/core/fotos.ts";
 
@@ -180,6 +181,8 @@ export interface FotoDaEspecie {
   legenda: string | null;
   credito: string;
   tag: TagDeFoto;
+  /** Escolhida pela administração para ilustrar o card e o cabeçalho. */
+  principal: boolean;
 }
 
 /**
@@ -194,22 +197,16 @@ function porFase<T extends { tag: TagDeFoto }>(fotos: T[]): T[] {
 export type EspecieComFoto = Species & { foto: FotoDaEspecie | null };
 
 /**
- * A foto que ilustra a espécie dentre as já carregadas — mesma ordem de
- * reconhecimento usada por `fotosPrincipais` para o card, aplicada em memória
- * para quem já tem a lista da galeria em mãos (a ficha e o cabeçalho do
- * modal), sem uma segunda consulta.
+ * A foto que ilustra a espécie dentre as já carregadas — mesma regra de
+ * `fotosPrincipais` para o card, aplicada em memória para quem já tem a lista
+ * da galeria em mãos (a ficha e o cabeçalho do modal), sem uma segunda
+ * consulta. A regra vive em core/fotos.ts.
  */
-export function escolherFotoPrincipal<T extends { tag: TagDeFoto }>(
-  fotos: T[],
-): T | null {
-  if (fotos.length === 0) return null;
-  return [...fotos].sort(
-    (a, b) => ordemDeReconhecimento(a.tag) - ordemDeReconhecimento(b.tag),
-  )[0];
-}
+export { escolherFotoPrincipal };
 
 /**
- * A foto que ilustra cada espécie: a primeira aprovada, por `ordem`.
+ * A foto que ilustra cada espécie: a aprovada marcada como principal, ou, sem
+ * marcação, a primeira na ordem de reconhecimento.
  *
  * `distinct on` deixa o banco escolher uma por espécie. Trazer todas as fotos
  * para filtrar em JS traria centenas de linhas só para descartar quase todas
@@ -229,6 +226,7 @@ async function fotosPrincipais(
       legenda: speciesFoto.legenda,
       credito: speciesFoto.credito,
       tag: speciesFoto.tag,
+      principal: speciesFoto.principal,
     })
     .from(speciesFoto)
     .innerJoin(media, eq(media.id, speciesFoto.mediaId))
@@ -245,6 +243,8 @@ async function fotosPrincipais(
     // ordem de core/fotos.ts, para o banco poder escolher uma por espécie.
     .orderBy(
       asc(speciesFoto.speciesId),
+      // A escolha da administração vem antes de qualquer regra automática.
+      desc(speciesFoto.principal),
       sql`array_position(array['adulta','fruta','raiz','flor','jovem','semente','misc']::tag_de_foto[], ${speciesFoto.tag})`,
       asc(speciesFoto.ordem),
       asc(speciesFoto.criadoEm),
@@ -303,6 +303,7 @@ export async function listarFotosDaEspecie(
       legenda: speciesFoto.legenda,
       credito: speciesFoto.credito,
       tag: speciesFoto.tag,
+      principal: speciesFoto.principal,
       aprovadaEm: speciesFoto.aprovadaEm,
       enviadaPor: speciesFoto.enviadaPor,
     })

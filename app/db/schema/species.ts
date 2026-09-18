@@ -1,6 +1,7 @@
 import {
   pgTable,
   text,
+  boolean,
   integer,
   real,
   timestamp,
@@ -8,7 +9,9 @@ import {
   jsonb,
   index,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import {
   estratoEnum,
   sucessaoEnum,
@@ -127,8 +130,9 @@ export type NovaSpecies = typeof species.$inferInsert;
 /**
  * Fotos de uma espécie.
  *
- * Uma espécie tem várias; a primeira por `ordem` é a que ilustra o card do
- * catálogo. O arquivo em si vive em `media` (MinIO) — aqui fica só o vínculo,
+ * Uma espécie tem várias. A que ilustra o card do catálogo e o cabeçalho da
+ * ficha é a marcada como `principal`; sem marcação, vale a ordem de
+ * reconhecimento de core/fotos.ts. O arquivo em si vive em `media` (MinIO) — aqui fica só o vínculo,
  * a legenda e o crédito.
  *
  * `credito` é obrigatório de propósito: foto sem autoria declarada é dado sem
@@ -163,6 +167,12 @@ export const speciesFoto = pgTable(
     /** Menor primeiro; empate desempata pela data de envio. */
     ordem: integer("ordem").notNull().default(0),
 
+    /**
+     * Escolhida pela administração para ilustrar o card e o cabeçalho da
+     * ficha. No máximo uma por espécie (índice parcial abaixo).
+     */
+    principal: boolean("principal").notNull().default(false),
+
     aprovadaEm: timestamp("aprovada_em"),
     aprovadaPor: text("aprovada_por").references(() => user.id, {
       onDelete: "set null",
@@ -176,6 +186,9 @@ export const speciesFoto = pgTable(
   (tabela) => [
     index("species_media_species_idx").on(tabela.speciesId),
     unique("species_media_unico").on(tabela.speciesId, tabela.mediaId),
+    uniqueIndex("species_media_principal_unica")
+      .on(tabela.speciesId)
+      .where(sql`${tabela.principal}`),
   ],
 );
 

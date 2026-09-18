@@ -1,0 +1,2 @@
+ALTER TABLE "species_media" ADD COLUMN "principal" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "species_media_principal_unica" ON "species_media" USING btree ("species_id") WHERE "species_media"."principal";

@@ -99,6 +99,13 @@
       "when": 1789740520014,
       "tag": "0013_foto_origem_wikimedia",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789756164052,
+      "tag": "0014_foto_principal",
+      "breakpoints": true
     }
   ]
 }
