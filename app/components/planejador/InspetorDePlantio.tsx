@@ -261,7 +261,7 @@ export function InspetorDePlantio({
           )}
 
           <Link
-            href={`/catalogo/${plantio.slug}`}
+            href={`/safdex/${plantio.slug}`}
             target="_blank"
             aria-label="Ver no catálogo"
             title="Ver no catálogo"
@@ -428,10 +428,7 @@ export function InspetorDePlantio({
         {plantio.estratoDaEspecie === null && (
           <p className="text-[0.7rem] leading-[1.5] text-muted-foreground">
             Sem estrato no catálogo.{" "}
-            <Link
-              href={`/catalogo/${plantio.slug}/sugerir`}
-              className="bio-link"
-            >
+            <Link href={`/safdex/${plantio.slug}/sugerir`} className="bio-link">
               Sugerir correção
             </Link>
           </p>

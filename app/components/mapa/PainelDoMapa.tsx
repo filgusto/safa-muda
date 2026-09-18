@@ -216,7 +216,7 @@ export function PainelDoMapa({
                 type="button"
                 onClick={concluirDesenho}
                 disabled={salvando}
-                className="inline-flex items-center gap-1 rounded-md border border-primary px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-bg-base disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-primary px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
               >
                 <Check size={12} />
                 Concluir

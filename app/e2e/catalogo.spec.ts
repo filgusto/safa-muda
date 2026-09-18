@@ -7,10 +7,10 @@ import { test, expect } from "@playwright/test";
  */
 
 test("lista as espécies sem exigir login", async ({ page }) => {
-  await page.goto("/catalogo");
+  await page.goto("/safdex");
 
   await expect(
-    page.getByRole("heading", { name: "Leafdex - Catálogo de plantas" }),
+    page.getByRole("heading", { name: "SAFdex", level: 1 }),
   ).toBeVisible();
 
   // O dataset semeado tem 442 espécies; o teste não fixa o número para não
@@ -20,7 +20,7 @@ test("lista as espécies sem exigir login", async ({ page }) => {
 });
 
 test("filtra por estrato com os chips", async ({ page }) => {
-  await page.goto("/catalogo");
+  await page.goto("/safdex");
 
   // Os botões trazem contadores no rótulo ("Estrato 2"), então o alvo estável
   // é a gaveta que cada um comanda, não o texto.
@@ -41,7 +41,7 @@ test("filtra por estrato com os chips", async ({ page }) => {
 
 test("acumula valores na mesma dimensão e limpa tudo", async ({ page }) => {
   // Dentro de uma dimensão vale OU: dois estratos trazem a soma dos dois.
-  await page.goto("/catalogo?estrato=emergente");
+  await page.goto("/safdex?estrato=emergente");
 
   const contagem = page.getByText(/de \d+ espécies/);
   const somenteEmergente = await contagem.textContent();
@@ -63,13 +63,13 @@ test("acumula valores na mesma dimensão e limpa tudo", async ({ page }) => {
   await expect(contagem).not.toHaveText(somenteEmergente ?? "");
 
   await page.getByRole("button", { name: "Limpar", exact: true }).click();
-  await expect(page).toHaveURL(/\/catalogo$/);
+  await expect(page).toHaveURL(/\/safdex$/);
 });
 
 test("o botão de pesquisa vira campo e filtra enquanto se digita", async ({
   page,
 }) => {
-  await page.goto("/catalogo");
+  await page.goto("/safdex");
 
   await page.getByRole("button", { name: "Pesquisar" }).click();
 
@@ -86,14 +86,14 @@ test("o botão de pesquisa vira campo e filtra enquanto se digita", async ({
 test("encontra pelo sinônimo", async ({ page }) => {
   // "Genipapo" é sinônimo do registro salvo como "Jenipapo" — ver a resolução
   // de duplicatas em scripts/dataset/correcoes.json.
-  await page.goto("/catalogo?busca=Genipapo");
+  await page.goto("/safdex?busca=Genipapo");
   await expect(page.getByRole("link", { name: /Jenipapo/ })).toBeVisible();
 });
 
 test("a ficha mostra a proveniência e as lacunas honestas", async ({
   page,
 }) => {
-  await page.goto("/catalogo/abacate");
+  await page.goto("/safdex/abacate");
 
   await expect(page.getByRole("heading", { name: "Abacate" })).toBeVisible();
   await expect(
@@ -108,12 +108,12 @@ test("a ficha mostra a proveniência e as lacunas honestas", async ({
 });
 
 test("espécie inexistente devolve 404", async ({ page }) => {
-  const resposta = await page.goto("/catalogo/nao-existe-mesmo");
+  const resposta = await page.goto("/safdex/nao-existe-mesmo");
   expect(resposta?.status()).toBe(404);
 });
 
 test("o card abre a ficha em modal sobre o catálogo", async ({ page }) => {
-  await page.goto("/catalogo?busca=abacate");
+  await page.goto("/safdex?busca=abacate");
 
   await page
     .getByRole("link", { name: /Abacate/ })
@@ -125,16 +125,14 @@ test("o card abre a ficha em modal sobre o catálogo", async ({ page }) => {
   await expect(
     modal.getByRole("heading", { name: "Abacate", level: 1 }),
   ).toBeVisible();
-  await expect(page).toHaveURL(/\/catalogo\/abacate/);
+  await expect(page).toHaveURL(/\/safdex\/abacate/);
 
   // A listagem continua montada por trás — é o ponto do modal. O papel de
   // heading some porque o Radix marca o resto da página como aria-hidden
   // enquanto o diálogo está aberto, então o alvo aqui é o elemento.
-  await expect(
-    page.locator("h1", { hasText: "Leafdex - Catálogo de plantas" }),
-  ).toBeVisible();
+  await expect(page.locator("h1", { hasText: "SAFdex" })).toBeVisible();
 
   await modal.getByRole("button", { name: "Fechar" }).click();
   await expect(modal).toBeHidden();
-  await expect(page).toHaveURL(/\/catalogo\?busca=abacate/);
+  await expect(page).toHaveURL(/\/safdex\?busca=abacate/);
 });

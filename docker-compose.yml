@@ -8,6 +8,7 @@
 #   - No Nginx reverse proxy (connect directly to web:3000)
 #   - Migrations run in dev too (no push:true — Payload foi removido)
 #   - No restart:always / resource limits (dev convenience)
+#   - Mailpit captura todo e-mail enviado (nada sai para a internet)
 
 services:
 
@@ -54,6 +55,17 @@ services:
         mc anonymous set download minio/safa-muda-media &&
         echo 'Bucket safa-muda-media ready.'
     restart: "no"
+
+  # ── Mailpit (SMTP de desenvolvimento) ─────────────────────────────────────────
+  # Recebe todo e-mail que a aplicação envia e mostra numa caixa de entrada web,
+  # sem entregar nada de verdade. SMTP em mailpit:1025 dentro da rede; a
+  # interface fica em http://localhost:${MAILPIT_UI_PORT:-8025}.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"   # Interface web
+    networks:
+      - safa-muda-net
 
   # ── PostgreSQL + PostGIS ─────────────────────────────────────────────────────
   # PostGIS é exigido pelo mapa de plantio (fase 4): consultas espaciais sobre
@@ -121,7 +133,12 @@ services:
       S3_BUCKET: safa-muda-media
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:-safa_muda}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-safa_muda_dev_secret}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_FROM: Safa Muda <nao-responda@safamuda.local>
     depends_on:
+      mailpit:
+        condition: service_started
       postgres:
         condition: service_healthy
       migrate:

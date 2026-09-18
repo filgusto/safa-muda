@@ -24,7 +24,11 @@ concluída ou subir o Docker:
 **Fase 2 — integração.** Só depois que a fase 1 passar, da raiz:
 
 - `docker compose up -d --build`
-- Aplicação em `http://localhost:3000` (ou `WEB_PORT`), MinIO em `:9001`
+- Aplicação em `http://localhost:3000` (ou `WEB_PORT`), MinIO em `:9001`,
+  Mailpit (caixa de entrada dos e-mails de dev) em `:8025` (ou `MAILPIT_UI_PORT`)
+- Depois de adicionar dependência: `docker compose up -d --build -V web` — sem
+  o `-V`, o container reaproveita o volume anônimo de `node_modules` e não
+  enxerga o pacote novo
 - `docker compose logs -f web`
 - **Não** rode `npm run dev` na máquina — use Docker Compose.
 
@@ -66,6 +70,17 @@ mesmo caminho de migrations, o que evita drift silencioso.
   inteiras.
 - **Estilo via Tailwind + shadcn.** Tokens em `app/tailwind.config.ts` e
   `app/app/(frontend)/globals.css`. Sem CSS puro nem styled-components.
+- **E-mail transacional usa a casca de `app/lib/email.ts`.** Todo e-mail
+  enviado ao usuário (recuperação de senha, código de confirmação, e o que
+  vier depois) monta o corpo com `moldeDeEmail` + `paragrafoDoEmail` e, quando
+  cabe, `boxDoCodigo` ou `botaoDoEmail` — não escreva HTML de e-mail solto em
+  outro lugar. É `<table>` com estilo inline de propósito (Outlook desktop
+  renderiza com o motor do Word, sem flexbox/grid nem `<style>` externo), com
+  as cores da marca (`--primary` de `globals.css`, `#3FAF5C`) e fontes de
+  sistema (Georgia/Arial), já que a fonte do app (Fraunces) não carrega na
+  maioria dos clientes. Um código ou segredo em destaque fica num só nó de
+  texto, sem espaço nem tag entre os caracteres — o espaçamento visual vem só
+  de `letter-spacing` — para que um duplo clique selecione tudo de uma vez.
 
 ## 4. Dados: a regra de ouro
 

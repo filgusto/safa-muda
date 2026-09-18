@@ -10,18 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Background layers – dark mode
+        // Background layers – acompanham o tema via variáveis CSS (ver globals.css)
         bg: {
-          base: "#0B1411",
-          surface1: "#11201A",
-          surface2: "#162A22",
-          border: "#1F3A30",
-        },
-        // Background layers – light mode
-        light: {
-          bg: "#F2F5F1",
-          surface: "#E6ECE7",
-          border: "#CFD8D2",
+          base: "hsl(var(--surface-0))",
+          surface1: "hsl(var(--surface-1))",
+          surface2: "hsl(var(--surface-2))",
+          border: "hsl(var(--surface-border))",
         },
         // Primary – Vida
         primary: {
@@ -120,6 +114,11 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // Barra de tempo restante: a duração vem de quem a usa.
+        esvaziar: {
+          "0%": { transform: "scaleX(1)" },
+          "100%": { transform: "scaleX(0)" },
+        },
       },
       animation: {
         "scroll-reveal": "scroll-reveal 300ms ease-in-out forwards",
@@ -128,6 +127,7 @@ const config: Config = {
         "underline-grow": "underline-grow 250ms ease-in-out forwards",
         "fade-in": "fade-in 400ms ease-in-out forwards",
         "count-up": "count-up 300ms ease-out forwards",
+        esvaziar: "esvaziar linear forwards",
       },
       transitionTimingFunction: {
         "bio-ease": "cubic-bezier(0.4, 0, 0.2, 1)",

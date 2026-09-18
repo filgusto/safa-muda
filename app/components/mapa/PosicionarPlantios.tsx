@@ -246,7 +246,7 @@ function ItemDePlantio({
             type="button"
             onClick={salvar}
             disabled={salvando}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-primary px-3 py-1 text-[0.7rem] font-medium text-primary transition-colors hover:bg-primary hover:text-bg-base disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-primary px-3 py-1 text-[0.7rem] font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
           >
             {salvando && <Loader2 size={11} className="animate-spin" />}
             Aplicar

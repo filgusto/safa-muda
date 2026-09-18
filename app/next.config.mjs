@@ -37,6 +37,15 @@ const nextConfig = {
         ]
     },
 
+    // O catálogo morava em /catalogo. Notificações já gravadas no banco e
+    // favoritos antigos ainda apontam para lá.
+    async redirects() {
+        return [
+            { source: '/catalogo', destination: '/safdex', permanent: true },
+            { source: '/catalogo/:path*', destination: '/safdex/:path*', permanent: true },
+        ]
+    },
+
     // Proxy /media/* → MinIO so media URLs work in dev and production.
     // Traefik passes all traffic through to the web service, so Next.js
     // handles this rewrite directly in production.

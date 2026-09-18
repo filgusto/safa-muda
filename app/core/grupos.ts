@@ -58,6 +58,11 @@ export const FONTE_LABEL: Record<string, string> = {
   "correcao-editorial": "Correção editorial do Safa Muda",
   "neto-cap10": "Agroflorestando o Mundo, cap. 10 (Corrêa Neto et al., 2016)",
   comunidade: "Contribuição da comunidade",
+  "flora-e-funga-do-brasil":
+    "Flora e Funga do Brasil (Jardim Botânico do Rio de Janeiro)",
+  "usda-plants": "USDA PLANTS Database",
+  gbif: "GBIF",
+  inaturalist: "iNaturalist",
 };
 
 export const FONTE_LABEL_CURTO: Record<string, string> = {
@@ -65,4 +70,8 @@ export const FONTE_LABEL_CURTO: Record<string, string> = {
   "correcao-editorial": "correção editorial",
   "neto-cap10": "Agroflorestando o Mundo",
   comunidade: "comunidade",
+  "flora-e-funga-do-brasil": "Flora e Funga do Brasil",
+  "usda-plants": "USDA PLANTS",
+  gbif: "GBIF",
+  inaturalist: "iNaturalist",
 };

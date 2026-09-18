@@ -41,3 +41,25 @@ export function ordemDaTag(tag: string): number {
   const posicao = (TAGS_DE_FOTO as readonly string[]).indexOf(tag);
   return posicao === -1 ? TAGS_DE_FOTO.length : posicao;
 }
+
+/**
+ * Ordem de reconhecimento no campo, usada para escolher a foto que ilustra o
+ * card e o cabeçalho da ficha: a forma adulta primeiro — como a espécie é
+ * vista de longe —, depois o que se colhe dela de perto (fruta, e então raiz,
+ * para a mandioca da vida), e só então as fases anteriores ao porte adulto.
+ */
+export const ORDEM_DE_RECONHECIMENTO: readonly TagDeFoto[] = [
+  "adulta",
+  "fruta",
+  "raiz",
+  "flor",
+  "jovem",
+  "semente",
+  "misc",
+];
+
+/** Posição da tag na ordem de reconhecimento. Tag desconhecida vai para o fim. */
+export function ordemDeReconhecimento(tag: string): number {
+  const posicao = (ORDEM_DE_RECONHECIMENTO as readonly string[]).indexOf(tag);
+  return posicao === -1 ? ORDEM_DE_RECONHECIMENTO.length : posicao;
+}

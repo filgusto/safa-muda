@@ -29,6 +29,7 @@ import {
   type Selecao,
 } from "./dimensoes.ts";
 import { PainelDeFiltros } from "./PainelDeFiltros.tsx";
+import { BotaoAdicionarEspecie } from "./BotaoAdicionarEspecie.tsx";
 
 /**
  * Controles de filtro do catálogo.
@@ -224,22 +225,26 @@ export function FiltrosCatalogo({
           )),
         )}
 
-        {temFiltro && (
-          <button
-            type="button"
-            onClick={() => {
-              setDimensaoAberta(null);
-              iniciarTransicao(() => {
-                preverSelecao(SELECAO_VAZIA);
-                router.replace(pathname);
-              });
-            }}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground transition-colors duration-240 hover:text-foreground"
-          >
-            <X size={12} />
-            Limpar
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {temFiltro && (
+            <button
+              type="button"
+              onClick={() => {
+                setDimensaoAberta(null);
+                iniciarTransicao(() => {
+                  preverSelecao(SELECAO_VAZIA);
+                  router.replace(pathname);
+                });
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground transition-colors duration-240 hover:text-foreground"
+            >
+              <X size={12} />
+              Limpar
+            </button>
+          )}
+
+          <BotaoAdicionarEspecie />
+        </div>
       </div>
 
       <PainelDeFiltros

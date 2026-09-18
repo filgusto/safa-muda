@@ -11,8 +11,27 @@ import {
   isModerator,
   AccessError,
 } from "@/lib/access.ts";
-import { removerObjeto } from "@/lib/storage.ts";
-import { TAGS_DE_FOTO } from "@/core/fotos.ts";
+import {
+  removerObjeto,
+  s3,
+  BUCKET,
+  gerarChave,
+  ehTipoPermitido,
+} from "@/lib/storage.ts";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { TAGS_DE_FOTO, type TagDeFoto } from "@/core/fotos.ts";
+import { avisarAvaliacao } from "@/lib/aviso-de-avaliacao.ts";
+import {
+  extrairTituloDoArquivo,
+  buscarMetadadosWikimedia,
+  baixarImagemWikimedia,
+  sugerirCredito,
+  WikimediaError,
+} from "@/lib/wikimedia.ts";
+import {
+  comprimirParaArmazenar,
+  ImagemGrandeDemais,
+} from "@/lib/comprimir-imagem-servidor.ts";
 
 /**
  * Fotos do catálogo.
@@ -39,9 +58,9 @@ function tratar(erro: unknown): Resultado {
 
 /** Revalida a ficha e a grade — a foto principal ilustra o card. */
 function revalidar(slug: string) {
-  revalidatePath(`/catalogo/${slug}`);
-  revalidatePath(`/catalogo/${slug}/fotos`);
-  revalidatePath("/catalogo");
+  revalidatePath(`/safdex/${slug}`);
+  revalidatePath(`/safdex/${slug}/fotos`);
+  revalidatePath("/safdex");
 }
 
 const adicionarSchema = z.object({
@@ -56,6 +75,33 @@ const adicionarSchema = z.object({
   tag: z.enum(TAGS_DE_FOTO),
   legenda: z.string().trim().max(300).nullable().optional(),
 });
+
+/**
+ * Vincula uma mídia já existente a uma espécie. Compartilhada por
+ * `adicionarFoto` (mídia enviada do computador) e `importarFotoDoWikimedia`
+ * (mídia baixada do Commons) — a partir daqui os dois fluxos são idênticos:
+ * mesma regra de moderação, mesma revalidação.
+ */
+async function criarSpeciesFoto(params: {
+  viewerId: string;
+  aprovada: boolean;
+  speciesId: string;
+  mediaId: string;
+  tag: TagDeFoto;
+  credito: string;
+  legenda: string | null;
+}) {
+  await db.insert(speciesFoto).values({
+    speciesId: params.speciesId,
+    mediaId: params.mediaId,
+    tag: params.tag,
+    credito: params.credito,
+    legenda: params.legenda,
+    enviadaPor: params.viewerId,
+    aprovadaEm: params.aprovada ? new Date() : null,
+    aprovadaPor: params.aprovada ? params.viewerId : null,
+  });
+}
 
 export async function adicionarFoto(entrada: unknown): Promise<Resultado> {
   try {
@@ -75,22 +121,168 @@ export async function adicionarFoto(entrada: unknown): Promise<Resultado> {
     });
     if (!especie) return { ok: false, erro: "Espécie não encontrada." };
 
-    const aprovada = isModerator(viewer);
-
-    await db.insert(speciesFoto).values({
+    await criarSpeciesFoto({
+      viewerId: viewer.id,
+      aprovada: isModerator(viewer),
       speciesId: especie.id,
       mediaId,
       tag,
       credito,
       legenda: legenda ?? null,
-      enviadaPor: viewer.id,
-      aprovadaEm: aprovada ? new Date() : null,
-      aprovadaPor: aprovada ? viewer.id : null,
     });
 
     revalidar(slug);
     return { ok: true };
   } catch (erro) {
+    return tratar(erro);
+  }
+}
+
+export interface ResultadoDePrevia {
+  ok: boolean;
+  erro?: string;
+  previa?: {
+    thumbUrl: string;
+    autor: string | null;
+    licencaNome: string | null;
+    licencaUrl: string | null;
+    credito: string;
+  };
+}
+
+/**
+ * Busca os metadados de um arquivo do Wikimedia Commons para prévia no
+ * formulário — não baixa nem grava nada ainda. O usuário confere autor e
+ * licença (e pode ajustar o crédito) antes de importar de fato.
+ */
+export async function buscarPreviaDoWikimedia(
+  url: string,
+): Promise<ResultadoDePrevia> {
+  try {
+    await requireViewer();
+
+    const titulo = extrairTituloDoArquivo(url);
+    if (!titulo) {
+      return {
+        ok: false,
+        erro: "Link inválido. Cole o link da ficha do arquivo no Wikimedia Commons (ex.: commons.wikimedia.org/wiki/File:...).",
+      };
+    }
+
+    const metadados = await buscarMetadadosWikimedia(titulo);
+    if (!ehTipoPermitido(metadados.mimeType)) {
+      return {
+        ok: false,
+        erro: `Este tipo de arquivo (${metadados.mimeType}) não é suportado. Aceitos: JPEG, PNG, WebP, AVIF.`,
+      };
+    }
+
+    return {
+      ok: true,
+      previa: {
+        thumbUrl: metadados.thumbUrl,
+        autor: metadados.autor,
+        licencaNome: metadados.licencaNome,
+        licencaUrl: metadados.licencaUrl,
+        credito: sugerirCredito(metadados),
+      },
+    };
+  } catch (erro) {
+    if (erro instanceof WikimediaError)
+      return { ok: false, erro: erro.message };
+    return tratar(erro);
+  }
+}
+
+const importarWikimediaSchema = z.object({
+  slug: z.string().min(1),
+  url: z.string().url(),
+  credito: z.string().trim().min(2).max(200),
+  tag: z.enum(TAGS_DE_FOTO),
+  legenda: z.string().trim().max(300).nullable().optional(),
+});
+
+/**
+ * Baixa a imagem do Commons, espelha no MinIO como qualquer outra foto do
+ * catálogo, e vincula à espécie. A URL da ficha do Commons fica guardada em
+ * `media.sourceUrl` como proveniência.
+ */
+export async function importarFotoDoWikimedia(
+  entrada: unknown,
+): Promise<Resultado> {
+  try {
+    const viewer = await requireViewer();
+
+    const analise = importarWikimediaSchema.safeParse(entrada);
+    if (!analise.success) {
+      return {
+        ok: false,
+        erro: analise.error.issues[0]?.message ?? "Dados inválidos.",
+      };
+    }
+    const { slug, url, credito, tag, legenda } = analise.data;
+
+    const titulo = extrairTituloDoArquivo(url);
+    if (!titulo)
+      return { ok: false, erro: "Link do Wikimedia Commons inválido." };
+
+    const especie = await db.query.species.findFirst({
+      where: eq(species.slug, slug),
+    });
+    if (!especie) return { ok: false, erro: "Espécie não encontrada." };
+
+    const metadados = await buscarMetadadosWikimedia(titulo);
+    if (!ehTipoPermitido(metadados.mimeType)) {
+      return {
+        ok: false,
+        erro: `Este tipo de arquivo (${metadados.mimeType}) não é suportado.`,
+      };
+    }
+
+    const original = await baixarImagemWikimedia(metadados.thumbUrl);
+    const comprimida = await comprimirParaArmazenar(original);
+
+    const key = gerarChave(`${titulo}.jpg`);
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+        Body: comprimida.buffer,
+        ContentType: comprimida.mimeType,
+      }),
+    );
+
+    const [registro] = await db
+      .insert(media)
+      .values({
+        key,
+        filename: `${titulo}.jpg`,
+        mimeType: comprimida.mimeType,
+        size: comprimida.buffer.length,
+        width: comprimida.largura,
+        height: comprimida.altura,
+        alt: metadados.descricao,
+        sourceUrl: metadados.paginaUrl,
+        uploadedBy: viewer.id,
+      })
+      .returning();
+
+    await criarSpeciesFoto({
+      viewerId: viewer.id,
+      aprovada: isModerator(viewer),
+      speciesId: especie.id,
+      mediaId: registro!.id,
+      tag,
+      credito,
+      legenda: legenda ?? null,
+    });
+
+    revalidar(slug);
+    return { ok: true };
+  } catch (erro) {
+    if (erro instanceof WikimediaError || erro instanceof ImagemGrandeDemais) {
+      return { ok: false, erro: erro.message };
+    }
     return tratar(erro);
   }
 }
@@ -112,7 +304,18 @@ export async function aprovarFoto(id: string): Promise<Resultado> {
     const especie = await db.query.species.findFirst({
       where: eq(species.id, foto.speciesId),
     });
-    if (especie) revalidar(especie.slug);
+    if (especie) {
+      revalidar(especie.slug);
+      if (foiEnviadaParaAvaliacao(foto, viewer.id)) {
+        await avisarAvaliacao({
+          autorId: foto.enviadaPor!,
+          aprovada: true,
+          oQue: "Sua foto",
+          nomeDaEspecie: especie.nomeComum,
+          slug: especie.slug,
+        });
+      }
+    }
     return { ok: true };
   } catch (erro) {
     return tratar(erro);
@@ -129,7 +332,7 @@ export async function aprovarFoto(id: string): Promise<Resultado> {
  */
 export async function removerFoto(id: string): Promise<Resultado> {
   try {
-    await requireModerator();
+    const viewer = await requireModerator();
 
     const foto = await db.query.speciesFoto.findFirst({
       where: eq(speciesFoto.id, id),
@@ -151,9 +354,37 @@ export async function removerFoto(id: string): Promise<Resultado> {
     const especie = await db.query.species.findFirst({
       where: eq(species.id, foto.speciesId),
     });
-    if (especie) revalidar(especie.slug);
+    if (especie) {
+      revalidar(especie.slug);
+      // Remover uma foto pendente é rejeitá-la; remover uma já publicada é
+      // manutenção do catálogo, e não pede aviso.
+      if (foiEnviadaParaAvaliacao(foto, viewer.id)) {
+        await avisarAvaliacao({
+          autorId: foto.enviadaPor!,
+          aprovada: false,
+          oQue: "Sua foto",
+          nomeDaEspecie: especie.nomeComum,
+          slug: especie.slug,
+        });
+      }
+    }
     return { ok: true };
   } catch (erro) {
     return tratar(erro);
   }
+}
+
+/**
+ * Foto que esperava avaliação, enviada por outra pessoa — só essa merece o
+ * e-mail de resultado. A da equipe já entra publicada.
+ */
+function foiEnviadaParaAvaliacao(
+  foto: { aprovadaEm: Date | null; enviadaPor: string | null },
+  avaliadorId: string,
+): boolean {
+  return (
+    foto.aprovadaEm === null &&
+    foto.enviadaPor !== null &&
+    foto.enviadaPor !== avaliadorId
+  );
 }

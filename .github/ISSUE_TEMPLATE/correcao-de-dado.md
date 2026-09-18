@@ -18,9 +18,8 @@ valor atual.
 
 ## Fonte
 
-**Obrigatório.** De onde vem o valor correto: livro e página, artigo,
-publicação de instituição, ou observação de campo (diga a região e as
-condições).
+**Obrigatório.** De onde vem o valor inserido? Por exemplo "observação de campo" (por gentileza, diga sua região e as condições de plantio se possível), "livro", "artigo",
+"publicação de instituição", etc.
 
 > Sem fonte não dá para corrigir — ver a regra de ouro dos dados no
 > [CONTRIBUTING.md](../../CONTRIBUTING.md). Se o dado simplesmente não existe na

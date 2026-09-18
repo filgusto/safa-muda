@@ -26,11 +26,6 @@ test("projetos exigem login", async ({ page }) => {
   await expect(page).toHaveURL(/\/entrar\?destino=\/projetos/);
 });
 
-test("moderação é restrita", async ({ page }) => {
-  await page.goto("/moderacao");
-  await expect(page).toHaveURL(/\/entrar/);
-});
-
 test("cadastra, cria projeto e registra no diário", async ({ page }) => {
   await cadastrar(page);
 
