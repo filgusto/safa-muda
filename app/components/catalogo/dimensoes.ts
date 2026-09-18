@@ -7,6 +7,18 @@ import {
 } from "@/core/sucessao.ts";
 import { GRUPOS, GRUPO_LABEL } from "@/core/grupos.ts";
 import {
+  CICLOS_DE_VIDA,
+  CICLO_DE_VIDA_LABEL,
+  HABITOS,
+  HABITO_LABEL,
+} from "@/core/ciclo.ts";
+import {
+  REBROTAS,
+  REBROTA_LABEL,
+  GEMAS_DE_REBROTA,
+  GEMA_DE_REBROTA_LABEL,
+} from "@/core/poda.ts";
+import {
   FAIXAS_DE_COLHEITA,
   FAIXA_DE_COLHEITA_LABEL,
 } from "@/core/colheita.ts";
@@ -25,6 +37,10 @@ export const DIMENSOES = [
   "sucessao",
   "sistema",
   "grupo",
+  "ciclo",
+  "habito",
+  "rebrota",
+  "gemas",
   "colheita",
   "familia",
 ] as const;
@@ -36,6 +52,10 @@ export const DIMENSAO_LABEL: Record<Dimensao, string> = {
   sucessao: "Sucessão",
   sistema: "Sistema",
   grupo: "Grupo",
+  ciclo: "Ciclo de vida",
+  habito: "Hábito",
+  rebrota: "Rebrota",
+  gemas: "Rebrota de onde",
   colheita: "Colheita",
   familia: "Família",
 };
@@ -49,6 +69,10 @@ export const SELECAO_VAZIA: Selecao = {
   sucessao: [],
   sistema: [],
   grupo: [],
+  ciclo: [],
+  habito: [],
+  rebrota: [],
+  gemas: [],
   colheita: [],
   familia: [],
 };
@@ -67,6 +91,16 @@ export const OPCOES_FIXAS: Record<Exclude<Dimensao, "familia">, Opcao[]> = {
   })),
   sistema: SISTEMAS.map((valor) => ({ valor, rotulo: SISTEMA_LABEL[valor] })),
   grupo: GRUPOS.map((valor) => ({ valor, rotulo: GRUPO_LABEL[valor] })),
+  ciclo: CICLOS_DE_VIDA.map((valor) => ({
+    valor,
+    rotulo: CICLO_DE_VIDA_LABEL[valor],
+  })),
+  habito: HABITOS.map((valor) => ({ valor, rotulo: HABITO_LABEL[valor] })),
+  rebrota: REBROTAS.map((valor) => ({ valor, rotulo: REBROTA_LABEL[valor] })),
+  gemas: GEMAS_DE_REBROTA.map((valor) => ({
+    valor,
+    rotulo: GEMA_DE_REBROTA_LABEL[valor],
+  })),
   colheita: FAIXAS_DE_COLHEITA.map((dias) => ({
     valor: String(dias),
     rotulo: FAIXA_DE_COLHEITA_LABEL[dias],

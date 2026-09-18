@@ -33,7 +33,7 @@ export function AcoesDaFoto({
           type="button"
           disabled={pendente}
           onClick={() => executar(() => aprovarFoto(id))}
-          className="inline-flex items-center gap-1.5 rounded-md border border-primary px-3 py-1 text-xs text-primary transition-colors duration-240 hover:bg-primary hover:text-bg-base disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-md border border-primary px-3 py-1 text-xs text-primary transition-colors duration-240 hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
         >
           <Check size={13} />
           Aprovar

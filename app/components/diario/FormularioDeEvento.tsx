@@ -11,6 +11,7 @@ import {
 } from "@/core/diario.ts";
 import { registrarEvento } from "@/app/actions/diario.ts";
 import type { PlantioLocal } from "@/components/planejador/tipos.ts";
+import { enviarMidia } from "@/lib/enviar-midia.ts";
 
 /**
  * Registro de um acontecimento no campo.
@@ -59,30 +60,10 @@ export function FormularioDeEvento({
     setErro(null);
 
     try {
-      const resposta = await fetch("/api/media/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: arquivo.name,
-          contentType: arquivo.type,
-          size: arquivo.size,
-          alt: `Foto de ${EVENTO_LABEL[tipo].toLowerCase()}`,
-        }),
-      });
-
-      if (!resposta.ok) {
-        const corpo = await resposta.json().catch(() => null);
-        throw new Error(corpo?.error ?? "Falha ao preparar o envio.");
-      }
-
-      const { mediaId, uploadUrl, publicUrl } = await resposta.json();
-
-      const envio = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": arquivo.type },
-        body: arquivo,
-      });
-      if (!envio.ok) throw new Error("Falha ao enviar a imagem.");
+      const { mediaId, publicUrl } = await enviarMidia(
+        arquivo,
+        `Foto de ${EVENTO_LABEL[tipo].toLowerCase()}`,
+      );
 
       setFotos((anterior) => [...anterior, { id: mediaId, url: publicUrl }]);
     } catch (falha) {
@@ -299,7 +280,7 @@ export function FormularioDeEvento({
         <button
           type="submit"
           disabled={enviando || subindo}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-primary px-4 py-1.5 text-xs font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-primary px-4 py-1.5 text-xs font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
         >
           {enviando && <Loader2 size={13} className="animate-spin" />}
           Registrar

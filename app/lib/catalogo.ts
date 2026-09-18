@@ -21,8 +21,24 @@ import {
   type Sistema,
 } from "@/core/sucessao.ts";
 import { GRUPOS, type Grupo } from "@/core/grupos.ts";
+import {
+  CICLOS_DE_VIDA,
+  HABITOS,
+  type CicloDeVida,
+  type Habito,
+} from "@/core/ciclo.ts";
+import {
+  REBROTAS,
+  GEMAS_DE_REBROTA,
+  type Rebrota,
+  type GemaDeRebrota,
+} from "@/core/poda.ts";
 import { lerFaixaDeColheita, type FaixaDeColheita } from "@/core/colheita.ts";
-import { ordemDaTag, type TagDeFoto } from "@/core/fotos.ts";
+import {
+  ordemDaTag,
+  ordemDeReconhecimento,
+  type TagDeFoto,
+} from "@/core/fotos.ts";
 
 /**
  * Consultas do catálogo público.
@@ -43,6 +59,10 @@ export interface FiltrosCatalogo {
   sucessoes?: Sucessao[];
   sistemas?: Sistema[];
   grupos?: Grupo[];
+  ciclos?: CicloDeVida[];
+  habitos?: Habito[];
+  rebrotas?: Rebrota[];
+  gemas?: GemaDeRebrota[];
   familias?: string[];
   /**
    * Teto de espera até a colheita, em dias. Vários tetos pedidos viram o maior
@@ -93,6 +113,10 @@ export function lerFiltros(
     sucessoes: deVocabulario("sucessao", SUCESSOES),
     sistemas: deVocabulario("sistema", SISTEMAS),
     grupos: deVocabulario("grupo", GRUPOS),
+    ciclos: deVocabulario("ciclo", CICLOS_DE_VIDA),
+    habitos: deVocabulario("habito", HABITOS),
+    rebrotas: deVocabulario("rebrota", REBROTAS),
+    gemas: deVocabulario("gemas", GEMAS_DE_REBROTA),
     familias: familias.length ? familias : undefined,
     colheitaAteDias: tetos.length ? Math.max(...tetos) : undefined,
   };
@@ -120,6 +144,8 @@ function montarCondicoes(filtros: FiltrosCatalogo): SQL | undefined {
     condicoes.push(inArray(species.sucessao, filtros.sucessoes));
   if (filtros.sistemas)
     condicoes.push(inArray(species.sistema, filtros.sistemas));
+  if (filtros.rebrotas)
+    condicoes.push(inArray(species.rebrota, filtros.rebrotas));
   if (filtros.familias)
     condicoes.push(inArray(species.familia, filtros.familias));
   // `lte` já descarta o nulo: espécie sem prazo informado não entra no filtro
@@ -128,13 +154,19 @@ function montarCondicoes(filtros: FiltrosCatalogo): SQL | undefined {
     condicoes.push(lte(species.diasParaColherMax, filtros.colheitaAteDias));
   }
 
-  if (filtros.grupos) {
-    // `grupos` é coluna de enum em array: basta a espécie ter um dos pedidos.
-    // Cada valor vai como parâmetro para não montar literal de array na mão.
-    const porGrupo = or(
-      ...filtros.grupos.map((grupo) => sql`${grupo} = any(${species.grupos})`),
-    );
-    if (porGrupo) condicoes.push(porGrupo);
+  // Colunas de enum em array: basta a espécie ter um dos valores pedidos. Cada
+  // valor vai como parâmetro para não montar literal de array na mão. Array
+  // vazio — "não informado" — nunca casa.
+  const emArray = [
+    [filtros.grupos, species.grupos],
+    [filtros.ciclos, species.cicloDeVida],
+    [filtros.habitos, species.habito],
+    [filtros.gemas, species.gemasDeRebrota],
+  ] as const;
+  for (const [valores, coluna] of emArray) {
+    if (!valores) continue;
+    const algum = or(...valores.map((valor) => sql`${valor} = any(${coluna})`));
+    if (algum) condicoes.push(algum);
   }
 
   return condicoes.length ? and(...condicoes) : undefined;
@@ -160,6 +192,21 @@ function porFase<T extends { tag: TagDeFoto }>(fotos: T[]): T[] {
 
 /** Espécie com a foto que ilustra o card — `null` quando não há nenhuma. */
 export type EspecieComFoto = Species & { foto: FotoDaEspecie | null };
+
+/**
+ * A foto que ilustra a espécie dentre as já carregadas — mesma ordem de
+ * reconhecimento usada por `fotosPrincipais` para o card, aplicada em memória
+ * para quem já tem a lista da galeria em mãos (a ficha e o cabeçalho do
+ * modal), sem uma segunda consulta.
+ */
+export function escolherFotoPrincipal<T extends { tag: TagDeFoto }>(
+  fotos: T[],
+): T | null {
+  if (fotos.length === 0) return null;
+  return [...fotos].sort(
+    (a, b) => ordemDeReconhecimento(a.tag) - ordemDeReconhecimento(b.tag),
+  )[0];
+}
 
 /**
  * A foto que ilustra cada espécie: a primeira aprovada, por `ordem`.

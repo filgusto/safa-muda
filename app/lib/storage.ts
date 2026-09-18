@@ -2,6 +2,7 @@ import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
+import { LIMITE_DE_UPLOAD_BYTES } from "./limite-de-upload.ts";
 
 /**
  * Acesso ao MinIO (S3-compatível).
@@ -57,8 +58,12 @@ export const TIPOS_PERMITIDOS = [
   "image/avif",
 ] as const;
 
-/** 15 MB — foto de celular cabe folgado, PDF de mapa não entra por engano. */
-export const TAMANHO_MAXIMO_BYTES = 15 * 1024 * 1024;
+/**
+ * 1 MB. O navegador reduz a imagem antes de enviar (ver
+ * lib/comprimir-imagem.ts), então o teto não recusa foto de celular — só
+ * impede que um envio fora desse caminho encha o disco.
+ */
+export const TAMANHO_MAXIMO_BYTES = LIMITE_DE_UPLOAD_BYTES;
 
 export function ehTipoPermitido(mimeType: string): boolean {
   return (TIPOS_PERMITIDOS as readonly string[]).includes(mimeType);

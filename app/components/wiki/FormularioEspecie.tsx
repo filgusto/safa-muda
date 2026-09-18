@@ -23,10 +23,13 @@ export function FormularioEspecie({
   modo,
   slug,
   iniciais = {},
+  aoConcluir,
 }: {
   modo: "edicao" | "nova";
   slug?: string;
   iniciais?: Valores;
+  /** Além da navegação padrão, para quem embute o formulário num modal. */
+  aoConcluir?: () => void;
 }) {
   const router = useRouter();
   const [valores, setValores] = useState<Valores>(iniciais);
@@ -57,7 +60,10 @@ export function FormularioEspecie({
     }
 
     setSucesso(resultado.mensagem ?? "Sugestão enviada.");
-    setTimeout(() => router.push("/sugestoes"), 1600);
+    setTimeout(() => {
+      if (aoConcluir) aoConcluir();
+      else router.push(slug ? `/safdex/${slug}` : "/safdex");
+    }, 1600);
   }
 
   if (sucesso) {
@@ -101,10 +107,11 @@ export function FormularioEspecie({
         <p className="mb-4 flex gap-2 text-sm leading-[1.7] text-muted-foreground">
           <Info size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>
-            De onde vem este dado? Livro e página, artigo, publicação de
-            instituição, ou observação de campo (diga a região e as condições).
-            Sem fonte a sugestão não pode ser avaliada — se o dado não existe na
-            literatura, o campo deve ficar vazio, não estimado.
+            De onde vem este dado? Observaçao de campo (por gentileza, diga sua
+            região e condições de plantio), livro e página, artigo, publicação
+            de instituição, ou observação de campo, etc. Sem fonte a sugestão
+            não pode ser avaliada — se o dado não existe na literatura, o campo
+            deve ficar vazio, não estimado.
           </span>
         </p>
         <textarea
@@ -142,7 +149,7 @@ export function FormularioEspecie({
       <button
         type="submit"
         disabled={enviando}
-        className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
       >
         {enviando && <Loader2 size={16} className="mr-2 animate-spin" />}
         Enviar sugestão

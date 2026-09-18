@@ -71,6 +71,34 @@
       "when": 1787944923384,
       "tag": "0009_tag_raiz",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789138513416,
+      "tag": "0010_ciclo_de_vida_especie",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789140061429,
+      "tag": "0011_rebrota_e_gemas",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789155083243,
+      "tag": "0012_links_externos_gbif_inaturalist",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789740520014,
+      "tag": "0013_foto_origem_wikimedia",
+      "breakpoints": true
     }
   ]
 }

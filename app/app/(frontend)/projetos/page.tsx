@@ -27,7 +27,7 @@ export default async function ProjetosPage() {
         </div>
         <Link
           href="/projetos/novo"
-          className="inline-flex items-center gap-2 rounded-md border border-primary bg-transparent px-5 py-2 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base active:scale-[0.98]"
+          className="inline-flex items-center gap-2 rounded-md border border-primary bg-transparent px-5 py-2 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground active:scale-[0.98]"
         >
           <Plus size={15} />
           Novo projeto

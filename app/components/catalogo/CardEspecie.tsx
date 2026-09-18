@@ -18,7 +18,7 @@ import { GRUPO_LABEL, type Grupo } from "@/core/grupos.ts";
 export function CardEspecie({ especie }: { especie: EspecieComFoto }) {
   return (
     <Link
-      href={`/catalogo/${especie.slug}`}
+      href={`/safdex/${especie.slug}`}
       className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-bg-border bg-bg-surface1 p-5 transition-all duration-320 hover:border-primary/50"
     >
       {especie.foto && <FotoDeFundo foto={especie.foto} />}
@@ -109,6 +109,14 @@ export function PastilhaEstrato({ estrato }: { estrato: Estrato }) {
       className={`shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider ${CLASSE_POR_ESTRATO[estrato]}`}
     >
       {ESTRATO_LABEL[estrato]}
+    </span>
+  );
+}
+
+export function PastilhaGrupo({ grupo }: { grupo: Grupo }) {
+  return (
+    <span className="shrink-0 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-primary">
+      {GRUPO_LABEL[grupo]}
     </span>
   );
 }

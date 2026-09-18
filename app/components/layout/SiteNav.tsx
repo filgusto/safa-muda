@@ -10,14 +10,14 @@ import { useNav } from "./NavContext";
 
 // Seções de topo. O planejador entra na fase 3.
 const NAV_LINKS = [
-  { label: "Catálogo", href: "/catalogo" },
+  { label: "Catálogo", href: "/safdex" },
   { label: "Projetos", href: "/projetos" },
 ];
 
 /**
- * `menu` é preenchido pelo layout com um Server Component (MenuDoUsuario):
- * sessão, contagem de pendências e notificações precisam vir do servidor, e
- * esta nav é client por causa do tema e do estado da sidebar.
+ * `menu` é preenchido pelo layout com o MenuDoUsuario (botão-ícone do usuário,
+ * ao lado do botão de tema); esta nav é client por causa do tema e do estado
+ * da sidebar.
  */
 export function SiteNav({ menu }: { menu?: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -96,7 +96,6 @@ export function SiteNav({ menu }: { menu?: React.ReactNode }) {
 
         {/* Right side buttons — always visible */}
         <div className="flex items-center gap-1 shrink-0">
-          {menu}
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -110,6 +109,7 @@ export function SiteNav({ menu }: { menu?: React.ReactNode }) {
               )}
             </button>
           )}
+          {menu}
           {hasSidebar && (
             <button
               onClick={() => setSidebarOpen((v) => !v)}

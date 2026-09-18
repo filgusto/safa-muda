@@ -30,7 +30,7 @@ export default async function Home() {
       <div className="mb-14 grid gap-5 sm:grid-cols-3">
         <Recurso
           icon={<Layers size={18} />}
-          titulo="Catálogo"
+          titulo="SAFdex"
           descricao="Espécies com estrato, sucessão e sistema — um wiki que melhora com o uso."
         />
         <Recurso
@@ -48,14 +48,14 @@ export default async function Home() {
       {viewer ? (
         <p className="text-sm text-muted-foreground">
           Você está autenticado como{" "}
-          <span className="text-foreground">{viewer.name}</span>. O catálogo e o
+          <span className="text-foreground">{viewer.name}</span>. O SAFdex e o
           planejador chegam nas próximas fases.
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/cadastro"
-            className="group inline-flex items-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98]"
+            className="group inline-flex items-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98]"
           >
             Criar conta
             <ArrowRight

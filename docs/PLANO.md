@@ -475,6 +475,47 @@ Sendo honesto sobre os limites do dataset:
 - **Ciclo e espaçamento:** só existem para ~60 espécies (cap. 10). Os demais
   campos ficam nulos e o card mostra "não informado", nunca um valor inventado.
   A wiki é o caminho para preencher isso ao longo do tempo.
+- **Ciclo de vida:** são quatro eixos independentes (`core/ciclo.ts`):
+  - ciclo biológico (anual, bienal ou perene, no vocabulário da USDA PLANTS;
+    é lista, porque varia com o clima);
+  - frutificação (monocárpica ou policárpica);
+  - hábito (forma de vida da Flora e Funga do Brasil);
+  - longevidade típica em faixa de anos. Só o mínimo vale "mais de N anos",
+    como em Götsch: "o dandá vive mais de 80 anos".
+
+  Classificar "hortaliça ⇒ anual" seria estimativa. Então tudo nasce vazio, e
+  só a fonte preenche. É o ciclo biológico, não o de manejo: quanto tempo a
+  planta fica no sistema continua sendo do plantio.
+
+  Dois eixos têm base pública estruturada, e `npm run
+  db:enriquecer-ciclo-e-habito` os carrega (`lib/tracos-externos.ts`):
+  hábito, da Flora e Funga do Brasil (pelo perfil que a lista publica no
+  GBIF), e ciclo biológico, do campo "Duration" da USDA PLANTS (só casamento
+  exato do nome aceito). O script só grava campo vazio, marca a fonte de cada
+  um e lista o que ficou sem match. A proposta de espécie nova passa pela
+  mesma busca em segundo plano, junto com os links do GBIF e do iNaturalist:
+  o que a pessoa deixou em branco é completado, a moderação vê cada campo
+  marcado como "completado automaticamente" e, na aprovação, ele fica com a
+  base de origem como fonte, não `comunidade`. Frutificação, longevidade, altura madura e
+  "produz a partir de" não têm fonte estruturada ampla: seguem com a wiki. O
+  iNaturalist não serve aqui: guarda observações, não traços da espécie.
+- **Poda:** existem os campos, mas nenhuma espécie os tem preenchidos, e
+  nenhuma base pública ampla os cobre com confiança (a "Resprout Ability" da
+  USDA existe para poucas espécies e erra casos conhecidos, como a gliricídia
+  sem "Coppice Potential"):
+  - `rebrota`: se a planta rebrota ou não depois de um corte drástico;
+  - `gemasDeRebrota`: de onde ela rebrota (tronco, colo, raiz ou órgão
+    subterrâneo).
+
+  O critério vem da ecologia da rebrota: Bond & Midgley (2001), Clarke et
+  al. (2013) e Pausas et al. (2018). A forma de vida de Raunkiær não resolve
+  essa pergunta: pinus, juçara, eucalipto e gliricídia são todos fanerófitos,
+  e cada um responde ao corte de um jeito.
+
+  Desses dois campos, `core/poda.ts` deriva até onde a poda pode ir (decote,
+  talhadia ou nenhuma) e de onde para baixo o corte elimina a planta. A ficha
+  mostra essa orientação sempre acompanhada da ressalva: idade, época do ano e
+  frequência de corte mudam a resposta.
 
 ### 7.4 O que ficou de fora da Fase 4
 
