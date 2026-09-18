@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index.ts";
 import { species, speciesFoto, media } from "@/db/schema/index.ts";
 import {
   requireViewer,
   requireModerator,
+  requireAdmin,
   isModerator,
   AccessError,
 } from "@/lib/access.ts";
@@ -316,6 +317,57 @@ export async function aprovarFoto(id: string): Promise<Resultado> {
         });
       }
     }
+    return { ok: true };
+  } catch (erro) {
+    return tratar(erro);
+  }
+}
+
+/**
+ * Escolhe a foto que ilustra o card do catálogo e o cabeçalho da ficha,
+ * no lugar da escolha automática pela fase da planta. Só a administração:
+ * é a vitrine da espécie, e não passa pela fila de sugestões.
+ *
+ * Desmarcar a anterior e marcar a nova vão na mesma transação — o índice
+ * parcial `species_media_principal_unica` recusaria duas marcadas ao mesmo
+ * tempo, e fora da transação uma falha no meio deixaria a espécie sem
+ * nenhuma.
+ */
+export async function definirFotoPrincipal(id: string): Promise<Resultado> {
+  try {
+    await requireAdmin();
+
+    const foto = await db.query.speciesFoto.findFirst({
+      where: eq(speciesFoto.id, id),
+    });
+    if (!foto) return { ok: false, erro: "Foto não encontrada." };
+    if (!foto.aprovadaEm) {
+      return {
+        ok: false,
+        erro: "A foto precisa ser aprovada antes de virar a principal.",
+      };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(speciesFoto)
+        .set({ principal: false })
+        .where(
+          and(
+            eq(speciesFoto.speciesId, foto.speciesId),
+            ne(speciesFoto.id, id),
+          ),
+        );
+      await tx
+        .update(speciesFoto)
+        .set({ principal: true })
+        .where(eq(speciesFoto.id, id));
+    });
+
+    const especie = await db.query.species.findFirst({
+      where: eq(species.id, foto.speciesId),
+    });
+    if (especie) revalidar(especie.slug);
     return { ok: true };
   } catch (erro) {
     return tratar(erro);

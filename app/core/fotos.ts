@@ -63,3 +63,19 @@ export function ordemDeReconhecimento(tag: string): number {
   const posicao = (ORDEM_DE_RECONHECIMENTO as readonly string[]).indexOf(tag);
   return posicao === -1 ? ORDEM_DE_RECONHECIMENTO.length : posicao;
 }
+
+/**
+ * A foto que ilustra o card e o cabeçalho da ficha: a marcada como principal
+ * pela administração, quando há; senão, a primeira na ordem de
+ * reconhecimento. Estável — empates mantêm a ordem recebida.
+ */
+export function escolherFotoPrincipal<
+  T extends { tag: string; principal: boolean },
+>(fotos: readonly T[]): T | null {
+  if (fotos.length === 0) return null;
+  return [...fotos].sort(
+    (a, b) =>
+      Number(b.principal) - Number(a.principal) ||
+      ordemDeReconhecimento(a.tag) - ordemDeReconhecimento(b.tag),
+  )[0]!;
+}

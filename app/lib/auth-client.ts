@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { createAuthClient } from "better-auth/react";
 import {
   emailOTPClient,
@@ -20,6 +21,28 @@ export const authClient = createAuthClient({
 });
 
 export const { signIn, signUp, signOut, useSession, emailOtp } = authClient;
+
+const nuncaMuda = () => () => {};
+
+/**
+ * `useSession`, mas sem sessão até a hidratação terminar.
+ *
+ * O `useSession` do Better Auth usa o mesmo snapshot no servidor e no
+ * cliente. No SSR a sessão é sempre nula; no navegador, o client busca a
+ * sessão assim que o módulo carrega e, se a resposta chega antes da
+ * hidratação, o primeiro render já a enxerga — e o HTML diverge do servidor
+ * (erro de hidratação). Use este hook em todo componente renderizado no
+ * servidor que mostra ou esconde algo conforme a sessão.
+ */
+export function useSessaoHidratada() {
+  const resultado = useSession();
+  const hidratado = useSyncExternalStore(
+    nuncaMuda,
+    () => true,
+    () => false,
+  );
+  return hidratado ? resultado : { ...resultado, data: null, isPending: true };
+}
 
 /**
  * O Better Auth devolve mensagens em inglês. A interface é pt-BR, então os

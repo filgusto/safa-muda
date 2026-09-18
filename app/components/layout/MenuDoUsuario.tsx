@@ -13,7 +13,7 @@ import {
   signIn,
   signUp,
   signOut,
-  useSession,
+  useSessaoHidratada,
   emailOtp,
   mensagemDeErro,
 } from "@/lib/auth-client.ts";
@@ -24,11 +24,11 @@ import {
  * É client de propósito. Buscar a sessão no servidor dentro do layout tornaria
  * TODA página dinâmica — inclusive as 442 fichas de espécie, que dependem de
  * ISR para serem indexáveis. Aqui o layout continua estático e só este pedaço
- * consulta a sessão (useSession), depois da hidratação.
+ * consulta a sessão (useSessaoHidratada), depois da hidratação.
  */
 export function MenuDoUsuario() {
   const [aberto, setAberto] = useState(false);
-  const { data: sessao, isPending } = useSession();
+  const { data: sessao, isPending } = useSessaoHidratada();
   // O Better Auth refaz a checagem de sessão depois de várias chamadas (ver
   // atomListeners do client) — inclusive /sign-up/email, que não loga
   // ninguém sozinho (a conta só entra depois do código, ver lib/auth.ts).
