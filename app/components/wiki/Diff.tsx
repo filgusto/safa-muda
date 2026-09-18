@@ -1,14 +1,12 @@
 import { ArrowRight } from "lucide-react";
-import { CAMPOS_POR_CHAVE } from "@/lib/especie-schema.ts";
-import { ESTRATO_LABEL, type Estrato } from "@/core/estratos.ts";
 import {
-  SUCESSAO_LABEL,
-  SISTEMA_LABEL,
-  type Sucessao,
-  type Sistema,
-} from "@/core/sucessao.ts";
-import { GRUPO_LABEL, type Grupo } from "@/core/grupos.ts";
-import { BIOMA_LABEL, type Bioma } from "@/core/biomas.ts";
+  CAMPOS_POR_CHAVE,
+  CHAVE_FONTES_AUTOMATICAS,
+  CHAVE_GRUPOS_PROPOSTOS,
+  chaveDeFonte,
+  rotuloDaChave,
+} from "@/lib/especie-schema.ts";
+import { FONTE_LABEL_CURTO } from "@/core/grupos.ts";
 
 /**
  * Diff campo a campo de uma proposta.
@@ -24,7 +22,15 @@ export function Diff({
   patch: Record<string, unknown>;
   atual?: Record<string, unknown> | null;
 }) {
-  const chaves = Object.keys(patch);
+  // A proveniência automática não é campo: vira uma nota em cada campo que o
+  // servidor completou, para quem modera saber o que não veio da pessoa.
+  const chaves = Object.keys(patch).filter(
+    (chave) => chave !== CHAVE_FONTES_AUTOMATICAS,
+  );
+  const automaticas = (patch[CHAVE_FONTES_AUTOMATICAS] ?? {}) as Record<
+    string,
+    string
+  >;
 
   if (chaves.length === 0) {
     return (
@@ -40,15 +46,22 @@ export function Diff({
         const definicao = CAMPOS_POR_CHAVE.get(chave);
         const antes = atual ? formatar(chave, atual[chave]) : null;
         const depois = formatar(chave, patch[chave]);
+        const fonteAutomatica = automaticas[chaveDeFonte(chave)];
 
         return (
           <li key={chave} className="py-3">
             <span className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-muted-foreground">
-              {definicao?.rotulo ?? chave}
+              {rotuloDaChave(chave)}
               {definicao?.unidade && ` (${definicao.unidade})`}
             </span>
+            {chave === CHAVE_GRUPOS_PROPOSTOS && (
+              <p className="mb-1.5 text-xs leading-[1.6] text-muted-foreground">
+                Não existem na lista de grupos. Aprovar não os cria: isso pede
+                inclusão no código.
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              {atual && (
+              {atual && chave !== CHAVE_GRUPOS_PROPOSTOS && (
                 <>
                   <Valor texto={antes} tom="antes" />
                   <ArrowRight
@@ -60,6 +73,12 @@ export function Diff({
               )}
               <Valor texto={depois} tom="depois" />
             </div>
+            {fonteAutomatica && (
+              <p className="mt-1.5 text-xs leading-[1.6] text-muted-foreground">
+                Completado automaticamente:{" "}
+                {FONTE_LABEL_CURTO[fonteAutomatica] ?? fonteAutomatica}.
+              </p>
+            )}
           </li>
         );
       })}
@@ -94,18 +113,13 @@ function Valor({
   );
 }
 
-const TRADUTORES: Record<string, (valor: string) => string> = {
-  estrato: (v) => ESTRATO_LABEL[v as Estrato] ?? v,
-  sucessao: (v) => SUCESSAO_LABEL[v as Sucessao] ?? v,
-  sistema: (v) => SISTEMA_LABEL[v as Sistema] ?? v,
-  grupos: (v) => GRUPO_LABEL[v as Grupo] ?? v,
-  biomas: (v) => BIOMA_LABEL[v as Bioma] ?? v,
-};
-
 function formatar(chave: string, valor: unknown): string | null {
   if (valor === null || valor === undefined || valor === "") return null;
 
-  const traduzir = TRADUTORES[chave] ?? ((item: string) => item);
+  // Campos de vocabulário trazem os rótulos na própria definição.
+  const opcoes = CAMPOS_POR_CHAVE.get(chave)?.opcoes;
+  const traduzir = (item: string) =>
+    opcoes?.find((opcao) => opcao.valor === item)?.rotulo ?? item;
 
   if (Array.isArray(valor)) {
     if (valor.length === 0) return null;

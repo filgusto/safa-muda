@@ -34,6 +34,15 @@
     --input: 160 28% 14%;
     --ring: 137 48% 46%;
     --radius: 0.5rem;
+
+    /* Camadas de superfície (bg-base/surface1/surface2/border no Tailwind).
+       surface1 replica --card; base replica --background; surface2 é um
+       degrau acima, para painéis aninhados dentro de um card. */
+    --surface-0: 160 30% 6%;
+    --surface-1: 160 28% 9%;
+    --surface-2: 160 24% 12%;
+    /* #162A22 */
+    --surface-border: 160 32% 17%;
   }
 
   /* ─── Light Mode ─────────────────────────────────────────────── */
@@ -60,6 +69,11 @@
     --border: 120 10% 83%;
     --input: 120 14% 85%;
     --ring: 137 48% 46%;
+
+    --surface-0: 120 14% 95%;
+    --surface-1: 120 14% 92%;
+    --surface-2: 120 14% 88%;
+    --surface-border: 120 10% 83%;
   }
 }
 

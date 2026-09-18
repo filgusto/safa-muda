@@ -57,6 +57,46 @@ export const grupoEnum = pgEnum("grupo", [
   "forrageira",
 ]);
 
+/** Duração do ciclo (USDA PLANTS, "Duration") — ver core/ciclo.ts. */
+export const cicloDeVidaEnum = pgEnum("ciclo_de_vida", [
+  "anual",
+  "bienal",
+  "perene",
+]);
+
+/** Quantas vezes a planta frutifica — ver core/ciclo.ts. */
+export const frutificacaoEnum = pgEnum("frutificacao", [
+  "monocarpica",
+  "policarpica",
+]);
+
+/**
+ * Forma de vida, no vocabulário da Flora e Funga do Brasil para angiospermas —
+ * ver core/ciclo.ts.
+ */
+export const habitoEnum = pgEnum("habito", [
+  "erva",
+  "subarbusto",
+  "arbusto",
+  "arvore",
+  "liana",
+  "palmeira",
+  "bambu",
+  "suculenta",
+  "dracenoide",
+]);
+
+/** Se a planta rebrota depois de corte drástico — ver core/poda.ts. */
+export const rebrotaEnum = pgEnum("rebrota", ["rebrota", "nao_rebrota"]);
+
+/** De onde a planta rebrota (banco de gemas) — ver core/poda.ts. */
+export const gemaDeRebrotaEnum = pgEnum("gema_de_rebrota", [
+  "tronco",
+  "colo",
+  "raiz",
+  "subterraneo",
+]);
+
 /** Bioma brasileiro. Ainda não populado — ver docs/PLANO.md §7.3. */
 export const biomaEnum = pgEnum("bioma", [
   "amazonia",

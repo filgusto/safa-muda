@@ -1,21 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ImagePlus } from "lucide-react";
-import { adicionarFoto } from "@/app/actions/fotos.ts";
+import { adicionarFoto, importarFotoDoWikimedia } from "@/app/actions/fotos.ts";
+import { enviarMidia } from "@/lib/enviar-midia.ts";
+import { type TagDeFoto } from "@/core/fotos.ts";
+import { SeletorDeFase } from "@/components/catalogo/SeletorDeFase.tsx";
 import {
-  TAGS_DE_FOTO,
-  TAG_DE_FOTO_LABEL,
-  type TagDeFoto,
-} from "@/core/fotos.ts";
+  useWikimediaPrevia,
+  PainelDeLinkDoWikimedia,
+} from "@/components/catalogo/LinkDoWikimedia.tsx";
+import { cn } from "@/lib/utils.ts";
 
 /**
  * Envio de foto para uma espécie.
  *
- * O arquivo vai do navegador direto ao MinIO por URL pré-assinada (ver
- * lib/storage.ts) e só depois o vínculo é gravado — assim uma foto de celular
- * de 10 MB nunca passa pela memória do processo Next.
+ * O arquivo passa por `enviarMidia`: reduzido a 1 MB no próprio navegador e
+ * subido direto ao MinIO por URL pré-assinada, sem passar pela memória do
+ * processo Next. Só depois o vínculo é gravado.
  *
  * Crédito e texto alternativo são obrigatórios: o primeiro porque foto sem
  * autoria declarada é dado sem proveniência, o segundo porque a ficha precisa
@@ -29,6 +32,7 @@ export function FormularioDeFoto({
   moderador: boolean;
 }) {
   const router = useRouter();
+  const [fonte, setFonte] = useState<"arquivo" | "wikimedia">("arquivo");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [previa, setPrevia] = useState<string | null>(null);
   const [alt, setAlt] = useState("");
@@ -38,6 +42,8 @@ export function FormularioDeFoto({
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const wikimedia = useWikimediaPrevia((dados) => setCredito(dados.credito));
+  const rotuloDaFase = useId();
 
   function escolher(selecionado: File | null) {
     setArquivo(selecionado);
@@ -46,45 +52,33 @@ export function FormularioDeFoto({
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!arquivo) return;
+    if (fonte === "arquivo" && !arquivo) return;
+    if (fonte === "wikimedia" && !wikimedia.previa) return;
 
     setEnviando(true);
     setErro(null);
     setAviso(null);
 
     try {
-      const preparo = await fetch("/api/media/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: arquivo.name,
-          contentType: arquivo.type,
-          size: arquivo.size,
-          alt,
-        }),
-      });
-
-      if (!preparo.ok) {
-        const corpo = await preparo.json().catch(() => null);
-        throw new Error(corpo?.error ?? "Falha ao preparar o envio.");
-      }
-
-      const { mediaId, uploadUrl } = await preparo.json();
-
-      const envio = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": arquivo.type },
-        body: arquivo,
-      });
-      if (!envio.ok) throw new Error("Falha ao enviar a imagem.");
-
-      const resultado = await adicionarFoto({
-        slug,
-        mediaId,
-        credito,
-        tag,
-        legenda: legenda || null,
-      });
+      const resultado =
+        fonte === "arquivo"
+          ? await (async () => {
+              const { mediaId } = await enviarMidia(arquivo!, alt);
+              return adicionarFoto({
+                slug,
+                mediaId,
+                credito,
+                tag,
+                legenda: legenda || null,
+              });
+            })()
+          : await importarFotoDoWikimedia({
+              slug,
+              url: wikimedia.url.trim(),
+              credito,
+              tag,
+              legenda: legenda || null,
+            });
       if (!resultado.ok) throw new Error(resultado.erro ?? "Falha ao salvar.");
 
       escolher(null);
@@ -92,6 +86,7 @@ export function FormularioDeFoto({
       setCredito("");
       setTag("adulta");
       setLegenda("");
+      wikimedia.reiniciar();
       setAviso(
         moderador
           ? "Foto publicada."
@@ -107,65 +102,91 @@ export function FormularioDeFoto({
 
   return (
     <form onSubmit={enviar} className="space-y-5">
-      <label className="block">
-        <span className={ROTULO}>
-          Imagem <span className="text-destructive">*</span>
-        </span>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif"
-          required
-          onChange={(evento) => escolher(evento.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:text-foreground"
-        />
-        <span className="mt-1 block text-xs text-muted-foreground">
-          JPEG, PNG, WebP ou AVIF, até 15 MB.
-        </span>
-      </label>
+      <div className="flex gap-1.5 rounded-md border border-border p-1">
+        {(["arquivo", "wikimedia"] as const).map((opcao) => (
+          <button
+            key={opcao}
+            type="button"
+            onClick={() => setFonte(opcao)}
+            className={cn(
+              "flex-1 rounded-[5px] px-3 py-1.5 text-sm transition-colors duration-240",
+              fonte === opcao
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-bg-surface2 hover:text-foreground",
+            )}
+          >
+            {opcao === "arquivo" ? "Enviar arquivo" : "Link do Wikimedia"}
+          </button>
+        ))}
+      </div>
 
-      {previa && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={previa}
-          alt=""
-          className="aspect-[4/3] w-full max-w-sm rounded-lg border border-bg-border object-cover"
+      {fonte === "arquivo" ? (
+        <>
+          <label className="block">
+            <span className={ROTULO}>
+              Imagem <span className="text-destructive">*</span>
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              required
+              onChange={(evento) => escolher(evento.target.files?.[0] ?? null)}
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:text-foreground"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              JPEG, PNG, WebP ou AVIF. Acima de 1 MB, a imagem é reduzida
+              automaticamente.
+            </span>
+          </label>
+
+          {previa && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previa}
+              alt=""
+              className="aspect-[4/3] w-full max-w-sm rounded-lg border border-bg-border object-cover"
+            />
+          )}
+
+          <label className="block">
+            <span className={ROTULO}>
+              Descrição da imagem <span className="text-destructive">*</span>
+            </span>
+            <input
+              value={alt}
+              onChange={(evento) => setAlt(evento.target.value)}
+              required
+              maxLength={500}
+              placeholder="Árvore adulta em pomar, vista de baixo"
+              className={CAMPO}
+            />
+          </label>
+        </>
+      ) : (
+        <PainelDeLinkDoWikimedia
+          url={wikimedia.url}
+          setUrl={wikimedia.setUrl}
+          buscar={wikimedia.buscar}
+          buscando={wikimedia.buscando}
+          erro={wikimedia.erro}
+          previa={wikimedia.previa}
         />
       )}
 
-      <label className="block">
-        <span className={ROTULO}>
-          Descrição da imagem <span className="text-destructive">*</span>
-        </span>
-        <input
-          value={alt}
-          onChange={(evento) => setAlt(evento.target.value)}
-          required
-          maxLength={500}
-          placeholder="Árvore adulta em pomar, vista de baixo"
-          className={CAMPO}
-        />
-      </label>
-
-      <label className="block">
-        <span className={ROTULO}>
+      <div>
+        <span id={rotuloDaFase} className={ROTULO}>
           Fase da planta <span className="text-destructive">*</span>
         </span>
-        <select
-          value={tag}
-          onChange={(evento) => setTag(evento.target.value as TagDeFoto)}
-          className={CAMPO}
-        >
-          {TAGS_DE_FOTO.map((valor) => (
-            <option key={valor} value={valor}>
-              {TAG_DE_FOTO_LABEL[valor]}
-            </option>
-          ))}
-        </select>
+        <SeletorDeFase
+          valor={tag}
+          aoEscolher={setTag}
+          rotuladoPor={rotuloDaFase}
+        />
         <span className="mt-1 block text-xs text-muted-foreground">
           O que a foto retrata. &ldquo;Diversas&rdquo; para o que não se encaixa
           em nenhuma delas — tronco, casca, folha, o pé no consórcio.
         </span>
-      </label>
+      </div>
 
       <label className="block">
         <span className={ROTULO}>
@@ -209,8 +230,10 @@ export function FormularioDeFoto({
 
       <button
         type="submit"
-        disabled={enviando || !arquivo}
-        className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        disabled={
+          enviando || (fonte === "arquivo" ? !arquivo : !wikimedia.previa)
+        }
+        className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
       >
         {enviando ? (
           <Loader2 size={16} className="mr-2 animate-spin" />

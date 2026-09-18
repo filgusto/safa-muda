@@ -16,6 +16,13 @@ export const media = pgTable("media", {
   height: integer("height"),
   /** Texto alternativo — obrigatório na UI, nulo aqui para uploads legados. */
   alt: text("alt"),
+  /**
+   * Ficha do arquivo no Wikimedia Commons, quando a foto foi importada de lá
+   * em vez de enviada do computador de quem contribuiu. O objeto ainda é
+   * espelhado no MinIO (mesma leitura por /media/<key> de sempre) — esta URL
+   * é só a proveniência para auditoria futura de autoria e licença.
+   */
+  sourceUrl: text("source_url"),
   uploadedBy: text("uploaded_by").references(() => user.id, {
     onDelete: "set null",
   }),

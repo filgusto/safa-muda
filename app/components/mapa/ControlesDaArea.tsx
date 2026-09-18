@@ -148,7 +148,7 @@ function GerarLinhas({
         type="button"
         onClick={gerar}
         disabled={processando}
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-primary px-4 py-1.5 text-xs font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base disabled:opacity-50"
+        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-primary px-4 py-1.5 text-xs font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
       >
         {processando && <Loader2 size={13} className="animate-spin" />}
         Gerar
@@ -252,7 +252,7 @@ function Georreferencia({
             type="button"
             onClick={() => salvar(false)}
             disabled={salvando}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-primary px-3 py-1.5 text-xs font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-bg-base disabled:opacity-50"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-primary px-3 py-1.5 text-xs font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
           >
             {salvando && <Loader2 size={13} className="animate-spin" />}
             Ancorar

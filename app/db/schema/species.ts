@@ -15,6 +15,11 @@ import {
   sistemaEnum,
   grupoEnum,
   biomaEnum,
+  cicloDeVidaEnum,
+  frutificacaoEnum,
+  habitoEnum,
+  rebrotaEnum,
+  gemaDeRebrotaEnum,
   tagDeFotoEnum,
 } from "./enums.ts";
 import { user } from "./auth.ts";
@@ -42,6 +47,11 @@ export const species = pgTable(
     /** Outros nomes comuns da mesma planta, para a busca encontrar. */
     sinonimos: text("sinonimos").array().notNull().default([]),
 
+    /** usageKey do táxon no GBIF (https://www.gbif.org/species/{id}). */
+    gbifId: integer("gbif_id"),
+    /** ID do táxon no iNaturalist (https://www.inaturalist.org/taxa/{id}). */
+    inaturalistId: integer("inaturalist_id"),
+
     // ── Classificação agroflorestal ─────────────────────────────────────────
     estrato: estratoEnum("estrato"),
     sucessao: sucessaoEnum("sucessao"),
@@ -61,9 +71,26 @@ export const species = pgTable(
     // ── Ainda não populados: nenhuma fonte disponível cobre ─────────────────
     // Ver docs/PLANO.md §7.3. Existem para que a wiki possa preenchê-los.
     alturaMaduraM: real("altura_madura_m"),
-    longevidadeAnos: integer("longevidade_anos"),
     produtivaAPartirDeMeses: integer("produtiva_a_partir_de_meses"),
     biomas: biomaEnum("biomas").array().notNull().default([]),
+
+    // Ciclo de vida: eixos independentes, ver core/ciclo.ts. É o ciclo
+    // biológico; quanto tempo a planta fica no sistema é do plantio. Hábito e
+    // ciclo vêm de db/scripts/enriquecer-ciclo-e-habito.ts; o resto, da wiki.
+    cicloDeVida: cicloDeVidaEnum("ciclo_de_vida").array().notNull().default([]),
+    frutificacao: frutificacaoEnum("frutificacao"),
+    habito: habitoEnum("habito").array().notNull().default([]),
+    // Longevidade típica até a senescência, em faixa como as fontes dão. Só o
+    // mínimo significa "mais de N anos" — não se inventa teto.
+    longevidadeMinAnos: real("longevidade_min_anos"),
+    longevidadeMaxAnos: real("longevidade_max_anos"),
+
+    // Poda (também não populado): se rebrota e de onde, ver core/poda.ts.
+    rebrota: rebrotaEnum("rebrota"),
+    gemasDeRebrota: gemaDeRebrotaEnum("gemas_de_rebrota")
+      .array()
+      .notNull()
+      .default([]),
 
     /** Texto livre: observações, ressalvas, contexto regional. */
     notas: text("notas").array().notNull().default([]),

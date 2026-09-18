@@ -75,7 +75,7 @@ export function PainelDoDiario({
             <button
               type="button"
               onClick={() => setRegistrando(true)}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-primary px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-bg-base"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-primary px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
             >
               <Plus size={12} />
               Registrar

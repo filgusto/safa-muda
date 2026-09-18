@@ -7,6 +7,7 @@ import { SiteNav } from "@/components/layout/SiteNav";
 import { NavProvider } from "@/components/layout/NavContext";
 import { MenuDoUsuario } from "@/components/layout/MenuDoUsuario";
 import { ID_CONTEUDO_DO_SITE } from "@/components/layout/conteudoDoSite";
+import { AvisoNoTopo } from "@/components/layout/AvisoNoTopo";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -79,6 +80,7 @@ export default function RootLayout({
               <main className="flex-1">{children}</main>
               <Footer />
             </div>
+            <AvisoNoTopo />
           </NavProvider>
         </ThemeProvider>
       </body>
