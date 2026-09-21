@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Info } from "lucide-react";
 import {
   CAMPOS,
   ROTULO_DO_GRUPO,
+  calcularPatch,
   type DefinicaoDeCampo,
 } from "@/lib/especie-schema.ts";
 import { proporEdicao, proporNovaEspecie } from "@/app/actions/wiki.ts";
@@ -24,12 +25,19 @@ export function FormularioEspecie({
   slug,
   iniciais = {},
   aoConcluir,
+  aoMudarPreenchimento,
 }: {
   modo: "edicao" | "nova";
   slug?: string;
   iniciais?: Valores;
   /** Além da navegação padrão, para quem embute o formulário num modal. */
   aoConcluir?: () => void;
+  /**
+   * Avisa quando o formulário passa a ter (ou deixa de ter) algo a perder.
+   * Quem embute num modal usa isto para perguntar antes de fechar — ver
+   * BotaoAdicionarEspecie.tsx.
+   */
+  aoMudarPreenchimento?: (preenchido: boolean) => void;
 }) {
   const router = useRouter();
   const [valores, setValores] = useState<Valores>(iniciais);
@@ -41,6 +49,20 @@ export function FormularioEspecie({
 
   const definir = (chave: string, valor: unknown) =>
     setValores((anterior) => ({ ...anterior, [chave]: valor }));
+
+  // Mesmo critério do patch enviado ao servidor: digitar e apagar de volta ao
+  // valor de partida não é alteração pendente.
+  // Enviado já não é rascunho: durante a mensagem de sucesso, fechar a janela
+  // não tem nada a perder.
+  const preenchido =
+    sucesso === null &&
+    (Object.keys(calcularPatch(iniciais, valores)).length > 0 ||
+      fonte.trim() !== "" ||
+      justificativa.trim() !== "");
+
+  useEffect(() => {
+    aoMudarPreenchimento?.(preenchido);
+  }, [preenchido, aoMudarPreenchimento]);
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();

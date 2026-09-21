@@ -2,8 +2,25 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronLeft, ChevronRight, Star } from "lucide-react";
-import { TAG_DE_FOTO_LABEL, escolherFotoPrincipal } from "@/core/fotos.ts";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Star,
+  Trash2,
+} from "lucide-react";
+import {
+  TAGS_DE_FOTO,
+  TAG_DE_FOTO_LABEL,
+  escolherFotoPrincipal,
+  type TagDeFoto,
+} from "@/core/fotos.ts";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
 import type { FotoDaEspecie } from "@/lib/catalogo.ts";
 import { useModoDeEdicao } from "@/components/wiki/ModoDeEdicao.tsx";
 import { useSessaoHidratada } from "@/lib/auth-client.ts";
@@ -32,9 +49,13 @@ import {
  * o modal da ficha faz com o card da grade (ver percursoDoModal.ts). Sem isso a
  * imagem parece vir de fora da tela, e o olho perde de onde ela saiu.
  *
- * No modo de edição, a administração vê uma estrela em cada miniatura: a
- * preenchida marca a foto que ilustra o card e o cabeçalho da ficha, e clicar
- * noutra troca a escolha no rascunho (ver ModoDeEdicao.tsx).
+ * No modo de edição, a equipe vê controles em cada miniatura: a lixeira, que
+ * marca a foto para sair da espécie, e o lápis ao lado da pastilha, que troca
+ * a fase retratada, ambos para moderação e administração; e a estrela, cuja
+ * versão preenchida marca a foto que ilustra o card e o cabeçalho da ficha,
+ * só para a administração — a capa é escolha dela. Os três entram no rascunho
+ * e só valem no envio (ver ModoDeEdicao.tsx) — a foto marcada para sair fica
+ * apagada até lá, e a lixeira desmarca.
  */
 export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
   const [aberta, setAberta] = useState<number | null>(null);
@@ -46,8 +67,16 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
 
   const { data: sessao } = useSessaoHidratada();
   const edicao = useModoDeEdicao();
-  const escolhendoPrincipal = edicao.ativo && sessao?.user.role === "admin";
-  const principalSalva = escolherFotoPrincipal(fotos)?.id ?? null;
+  const papel = sessao?.user.role;
+  const podeEscolherCapa = edicao.ativo && papel === "admin";
+  const daEquipe = papel === "admin" || papel === "moderator";
+  const podeRemover = edicao.ativo && daEquipe;
+  const podeTrocarFase = edicao.ativo && daEquipe;
+  // A capa automática ignora as marcadas para sair: elas não ficam.
+  const principalSalva =
+    escolherFotoPrincipal(
+      fotos.filter((foto) => !edicao.fotosRemovidas.includes(foto.id)),
+    )?.id ?? null;
   const principal = edicao.fotoPrincipal ?? principalSalva;
 
   /** A miniatura de onde o visor sai — e para onde volta. */
@@ -163,41 +192,114 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
   return (
     <>
       <ul className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
-        {fotos.map((foto, indice) => (
-          <li key={foto.id} className="relative shrink-0 snap-start">
-            <button
-              type="button"
-              ref={(elemento) => {
-                miniaturas.current[indice] = elemento;
-              }}
-              onClick={() => setAberta(indice)}
-              className="group relative block overflow-hidden rounded-lg border border-bg-border transition-colors duration-240 hover:border-primary/60"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/media/${foto.key}`}
-                alt={foto.alt ?? ""}
-                loading="lazy"
-                className="h-40 w-56 object-cover transition-transform duration-320 group-hover:scale-[1.03]"
-              />
-              <span className="absolute bottom-1.5 left-1.5 rounded-md border border-bg-border/60 bg-bg-base/75 px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider text-foreground/90">
-                {TAG_DE_FOTO_LABEL[foto.tag]}
-              </span>
-            </button>
-            {escolhendoPrincipal && (
-              <EstrelaDePrincipal
-                marcada={foto.id === principal}
-                onClick={() =>
-                  // Voltar à que já está salva é desfazer a troca, não uma
-                  // troca a mais no rascunho.
-                  edicao.escolherFotoPrincipal(
-                    foto.id === principalSalva ? null : foto.id,
-                  )
-                }
-              />
-            )}
-          </li>
-        ))}
+        {fotos.map((foto, indice) => {
+          const saindo = edicao.fotosRemovidas.includes(foto.id);
+          // A fase do rascunho, quando há: a miniatura mostra o que vai valer.
+          const fase = edicao.fasesDeFoto[foto.id] ?? foto.tag;
+          return (
+            <li key={foto.id} className="relative shrink-0 snap-start">
+              <button
+                type="button"
+                ref={(elemento) => {
+                  miniaturas.current[indice] = elemento;
+                }}
+                onClick={() => setAberta(indice)}
+                className={cn(
+                  "group relative block overflow-hidden rounded-lg border border-bg-border transition-all duration-240 hover:border-primary/60",
+                  saindo && "border-red-500/60 opacity-40 grayscale",
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/media/${foto.key}`}
+                  alt={foto.alt ?? ""}
+                  loading="lazy"
+                  className="h-40 w-56 object-cover transition-transform duration-320 group-hover:scale-[1.03]"
+                />
+              </button>
+
+              {/*
+                Fora do botão da miniatura, mas sem capturar o clique: a
+                pastilha continua parecendo parte da foto, e clicar nela ainda
+                abre o visor. Só o lápis volta a receber eventos.
+              */}
+              <div className="pointer-events-none absolute bottom-1.5 left-1.5 flex items-center gap-1">
+                <span
+                  className={cn(
+                    "rounded-md border border-bg-border/60 bg-bg-base/75 px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider text-foreground/90",
+                    fase !== foto.tag && "border-primary/60 text-primary",
+                  )}
+                >
+                  {TAG_DE_FOTO_LABEL[fase]}
+                </span>
+                {podeTrocarFase && !saindo && (
+                  <EscolherFase
+                    fase={fase}
+                    aoEscolher={(escolhida) =>
+                      // Voltar à fase gravada é desfazer a troca, não uma
+                      // troca a mais no rascunho.
+                      edicao.definirFaseDeFoto(
+                        foto.id,
+                        escolhida === foto.tag ? null : escolhida,
+                      )
+                    }
+                  />
+                )}
+              </div>
+              {(podeEscolherCapa || podeRemover) && (
+                <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
+                  {podeEscolherCapa && !saindo && (
+                    <ControleDaFoto
+                      rotulo={
+                        foto.id === principal
+                          ? "Foto principal da espécie"
+                          : "Usar como foto principal"
+                      }
+                      marcado={foto.id === principal}
+                      onClick={() =>
+                        // Voltar à que já está salva é desfazer a troca, não uma
+                        // troca a mais no rascunho.
+                        edicao.escolherFotoPrincipal(
+                          foto.id === principalSalva ? null : foto.id,
+                        )
+                      }
+                    >
+                      <Star
+                        size={16}
+                        fill={foto.id === principal ? "currentColor" : "none"}
+                        className={
+                          foto.id === principal
+                            ? "text-amber-400"
+                            : "text-foreground/80 hover:text-amber-400"
+                        }
+                      />
+                    </ControleDaFoto>
+                  )}
+                  {podeRemover && (
+                    <ControleDaFoto
+                      rotulo={
+                        saindo
+                          ? "Manter esta foto"
+                          : "Remover esta foto da espécie"
+                      }
+                      marcado={saindo}
+                      onClick={() => edicao.alternarRemocaoDeFoto(foto.id)}
+                    >
+                      <Trash2
+                        size={16}
+                        className={
+                          saindo
+                            ? "text-red-500"
+                            : "text-foreground/80 hover:text-red-500"
+                        }
+                      />
+                    </ControleDaFoto>
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <Dialog.Root
@@ -230,7 +332,7 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
                 />
                 <div className="mt-3 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 text-center">
                   <span className="font-mono text-[0.65rem] uppercase tracking-wider text-primary">
-                    {TAG_DE_FOTO_LABEL[foco.tag]}
+                    {TAG_DE_FOTO_LABEL[edicao.fasesDeFoto[foco.id] ?? foco.tag]}
                   </span>
                   {foco.legenda && (
                     <span className="text-sm text-foreground/90">
@@ -273,37 +375,84 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
 }
 
 /**
- * Fora do botão da miniatura, e não dentro: botão dentro de botão é HTML
- * inválido, e o clique na estrela abriria o visor junto.
+ * O lápis ao lado da pastilha: abre a lista de fases e troca a da foto.
+ *
+ * A fase governa a ordem da galeria e a escolha automática da capa
+ * (core/fotos.ts), então é classificação do catálogo — por isso fica com a
+ * equipe, e não com quem envia a foto.
  */
-function EstrelaDePrincipal({
-  marcada,
-  onClick,
+function EscolherFase({
+  fase,
+  aoEscolher,
 }: {
-  marcada: boolean;
+  fase: TagDeFoto;
+  aoEscolher: (fase: TagDeFoto) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+
+  return (
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger
+        aria-label="Trocar a fase retratada"
+        title="Trocar a fase retratada"
+        className="pointer-events-auto rounded-full border border-bg-border/60 bg-bg-base/75 p-1 text-foreground/80 transition-all duration-240 hover:scale-110 hover:text-primary active:scale-95"
+      >
+        <Pencil size={13} />
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} className="w-44 p-1">
+        <p className="px-2 py-1.5 font-mono text-[0.6rem] uppercase tracking-wider text-muted-foreground">
+          Fase retratada
+        </p>
+        {TAGS_DE_FOTO.map((opcao) => (
+          <button
+            key={opcao}
+            type="button"
+            aria-pressed={opcao === fase}
+            onClick={() => {
+              aoEscolher(opcao);
+              setAberto(false);
+            }}
+            className={cn(
+              "block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-240 hover:bg-bg-surface2",
+              opcao === fase
+                ? "font-medium text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {TAG_DE_FOTO_LABEL[opcao]}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
+ * Estrela e lixeira do modo de edição. Ficam fora do botão da miniatura, e não
+ * dentro: botão dentro de botão é HTML inválido, e o clique abriria o visor
+ * junto.
+ */
+function ControleDaFoto({
+  rotulo,
+  marcado,
+  onClick,
+  children,
+}: {
+  rotulo: string;
+  marcado: boolean;
   onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={marcada}
-      aria-label={
-        marcada ? "Foto principal da espécie" : "Usar como foto principal"
-      }
-      title={marcada ? "Foto principal" : "Usar como foto principal"}
-      className="absolute right-1.5 top-1.5 rounded-full border border-bg-border/60 bg-bg-base/75 p-1 transition-transform duration-240 hover:scale-110 active:scale-95"
+      aria-pressed={marcado}
+      aria-label={rotulo}
+      title={rotulo}
+      className="rounded-full border border-bg-border/60 bg-bg-base/75 p-1 transition-transform duration-240 hover:scale-110 active:scale-95 [&>svg]:transition-colors [&>svg]:duration-240"
     >
-      <Star
-        size={16}
-        fill={marcada ? "currentColor" : "none"}
-        className={cn(
-          "transition-colors duration-240",
-          marcada
-            ? "text-amber-400"
-            : "text-foreground/80 hover:text-amber-400",
-        )}
-      />
+      {children}
     </button>
   );
 }

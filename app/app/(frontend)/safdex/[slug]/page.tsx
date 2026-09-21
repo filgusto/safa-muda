@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { buscarEspeciePorSlug, listarFotosDaEspecie } from "@/lib/catalogo.ts";
-import { listarRevisoesDaEspecie } from "@/lib/wiki.ts";
 import { DetalheEspecie } from "@/components/catalogo/DetalheEspecie.tsx";
 import { ProvedorDoModoDeEdicao } from "@/components/wiki/ModoDeEdicao.tsx";
 
@@ -42,10 +41,7 @@ export default async function EspeciePage({
   const especie = await buscarEspeciePorSlug((await params).slug);
   if (!especie) notFound();
 
-  const [revisoes, fotos] = await Promise.all([
-    listarRevisoesDaEspecie(especie.id),
-    listarFotosDaEspecie(especie.id),
-  ]);
+  const fotos = await listarFotosDaEspecie(especie.id);
 
   return (
     <main className="container mx-auto max-w-3xl px-6 py-16">
@@ -61,12 +57,7 @@ export default async function EspeciePage({
         slug={especie.slug}
         nomeDaEspecie={especie.nomeComum}
       >
-        <DetalheEspecie
-          especie={especie}
-          revisoes={revisoes}
-          fotos={fotos}
-          comBotaoDeEdicao
-        />
+        <DetalheEspecie especie={especie} fotos={fotos} comBotaoDeEdicao />
       </ProvedorDoModoDeEdicao>
     </main>
   );
