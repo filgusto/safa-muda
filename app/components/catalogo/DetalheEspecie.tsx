@@ -1,5 +1,5 @@
-import { HelpCircle } from "lucide-react";
-import { Diff } from "@/components/wiki/Diff.tsx";
+import { Secao } from "@/components/catalogo/Secao.tsx";
+import { HistoricoDaEspecie } from "@/components/catalogo/HistoricoDaEspecie.tsx";
 import {
   BotaoDeEdicao,
   ForaDoModoDeEdicao,
@@ -9,16 +9,12 @@ import {
   CampoEditavel,
   NomeEditavel,
 } from "@/components/wiki/CampoEditavel.tsx";
+import { ObservacoesEditaveis } from "@/components/wiki/ObservacoesEditaveis.tsx";
 import {
   PastilhaGrupo,
   rotuloSucessao,
   rotuloSistema,
 } from "@/components/catalogo/CardEspecie.tsx";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover.tsx";
 import { GRUPO_LABEL, FONTE_LABEL, type Grupo } from "@/core/grupos.ts";
 import {
   luzQueChegaAo,
@@ -50,10 +46,6 @@ import {
   FotosPendentes,
 } from "@/components/catalogo/AdicionarFoto.tsx";
 import { LinksExternos } from "@/components/catalogo/LinksExternos.tsx";
-import type { listarRevisoesDaEspecie } from "@/lib/wiki.ts";
-
-type Revisao = Awaited<ReturnType<typeof listarRevisoesDaEspecie>>[number];
-
 /**
  * Nome comum + tags de grupo + nome científico (com os links externos ao
  * lado) + sinônimos — a identidade da espécie, sem os botões de ação.
@@ -114,13 +106,11 @@ export function IdentidadeDaEspecie({ especie }: { especie: Species }) {
  */
 export function DetalheEspecie({
   especie,
-  revisoes,
   fotos,
   comBotaoDeEdicao = false,
   comCabecalho = true,
 }: {
   especie: Species;
-  revisoes: Revisao[];
   fotos: FotoDaEspecie[];
   comBotaoDeEdicao?: boolean;
   /** `false` no modal: a identidade já aparece na faixa fixa da moldura. */
@@ -343,28 +333,7 @@ export function DetalheEspecie({
         </Secao>
       )}
 
-      {especie.notas.length > 0 && (
-        <Secao
-          titulo="Observações"
-          info={
-            <>
-              O que não cabe nos campos acima: ressalvas regionais, variedades,
-              nomes em desuso e divergências entre fontes.
-            </>
-          }
-        >
-          <ul className="space-y-3">
-            {especie.notas.map((nota, indice) => (
-              <li
-                key={indice}
-                className="rounded-lg border-l-4 border-blue-500/30 bg-blue-500/5 p-4 text-sm leading-[1.7] text-blue-900 dark:text-blue-200"
-              >
-                {nota}
-              </li>
-            ))}
-          </ul>
-        </Secao>
-      )}
+      <ObservacoesEditaveis slug={especie.slug} notas={especie.notas} />
 
       <SoNoModoDeEdicao>
         <Secao
@@ -413,35 +382,7 @@ export function DetalheEspecie({
         </ul>
       </Secao>
 
-      {revisoes.length > 0 && (
-        <Secao
-          titulo="Histórico"
-          info={
-            <>
-              As alterações aprovadas nesta ficha, da mais recente para a mais
-              antiga: o que mudou, quando, quem sugeriu e a fonte declarada.
-            </>
-          }
-        >
-          <ul className="space-y-3">
-            {revisoes.map((revisao) => (
-              <li
-                key={revisao.id}
-                className="rounded-xl border border-bg-border bg-bg-surface1 p-4"
-              >
-                <p className="mb-2 font-mono text-xs text-muted-foreground">
-                  {revisao.criadoEm.toLocaleDateString("pt-BR")} ·{" "}
-                  {revisao.autorNome ?? "autor removido"}
-                </p>
-                <Diff patch={revisao.patch} />
-                <p className="mt-2 text-xs leading-[1.6] text-muted-foreground/80">
-                  Fonte: {revisao.fonte}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Secao>
-      )}
+      <HistoricoDaEspecie speciesId={especie.id} />
     </>
   );
 }
@@ -546,42 +487,6 @@ function formatar(valor: number): string {
   return Number.isInteger(valor)
     ? String(valor)
     : valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-}
-
-function Secao({
-  titulo,
-  info,
-  acao,
-  children,
-}: {
-  titulo: string;
-  info?: React.ReactNode;
-  /** Controle ao lado do título, como o "+" de fotos no modo de edição. */
-  acao?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mb-10 last:mb-0">
-      <h2 className="mb-4 flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-primary">
-        {titulo}
-        {info && (
-          <Popover>
-            <PopoverTrigger
-              className="flex size-4 items-center justify-center rounded-full text-muted-foreground/70 normal-case tracking-normal hover:text-foreground"
-              aria-label={`Sobre ${titulo}`}
-            >
-              <HelpCircle size={14} />
-            </PopoverTrigger>
-            <PopoverContent className="w-72 text-sm normal-case leading-[1.7] tracking-normal text-muted-foreground">
-              {info}
-            </PopoverContent>
-          </Popover>
-        )}
-        {acao}
-      </h2>
-      {children}
-    </section>
-  );
 }
 
 function Campo({ rotulo, valor }: { rotulo: string; valor: string | null }) {

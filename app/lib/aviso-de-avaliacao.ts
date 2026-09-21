@@ -32,7 +32,12 @@ export async function avisarAvaliacao({
   /** "Sua sugestão de alteração", "Sua foto" — sujeito da frase. */
   oQue: string;
   nomeDaEspecie: string;
-  slug: string;
+  /**
+   * Ficha para onde apontar, quando existe. Proposta de espécie nova
+   * rejeitada não gera ficha, e a espécie de uma edição pode ter sido
+   * removida nesse meio-tempo: nesses casos o aviso sai igual, só sem o link.
+   */
+  slug?: string | null;
   nota?: string | null;
 }): Promise<void> {
   try {
@@ -41,10 +46,15 @@ export async function avisarAvaliacao({
     });
     if (!autor) return;
 
-    const endereco = `${process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000"}/safdex/${slug}`;
+    const endereco = slug
+      ? `${process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000"}/safdex/${slug}`
+      : null;
+    const onde = slug ? `à ficha de ${nomeDaEspecie}` : "ao catálogo";
     const resultado = aprovada
-      ? `foi aprovada e já está na ficha de ${nomeDaEspecie}.`
-      : `não foi incorporada à ficha de ${nomeDaEspecie}.`;
+      ? slug
+        ? `foi aprovada e já está na ficha de ${nomeDaEspecie}.`
+        : `foi aprovada e já está no catálogo.`
+      : `não foi incorporada ${onde}.`;
     const rotuloDaNota = aprovada ? "Nota da equipe" : "Motivo";
 
     await enviarEmail({
@@ -55,8 +65,7 @@ export async function avisarAvaliacao({
         "",
         `${oQue} para ${nomeDaEspecie} ${resultado}`,
         ...(nota ? ["", `${rotuloDaNota}: ${nota}`] : []),
-        "",
-        `Ver a ficha: ${endereco}`,
+        ...(endereco ? ["", `Ver a ficha: ${endereco}`] : []),
         "",
         "Obrigado por contribuir com o Safa Muda.",
       ].join("\n"),
@@ -71,7 +80,7 @@ export async function avisarAvaliacao({
                 `<strong>${rotuloDaNota}:</strong> ${escaparHtml(nota)}`,
               )
             : "",
-          botaoDoEmail(endereco, "Ver a ficha"),
+          endereco ? botaoDoEmail(endereco, "Ver a ficha") : "",
           paragrafoDoEmail("Obrigado por contribuir com o Safa Muda."),
         ].join(""),
       ),

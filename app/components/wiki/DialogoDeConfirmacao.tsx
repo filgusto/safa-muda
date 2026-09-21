@@ -42,3 +42,42 @@ export function DialogoDeConfirmacao({
     </Dialog.Root>
   );
 }
+
+/**
+ * O par de botões de "fechar com rascunho pendente", usado sempre que sair
+ * de uma janela custa trabalho já feito.
+ *
+ * Continuar é o caminho seguro e vem em destaque, à direita; descartar fica
+ * discreto e em vermelho, para não ser clicado por reflexo. Em tela estreita,
+ * `wrap-reverse` põe o descartar embaixo, e não em cima.
+ */
+export function AcoesDeDescarte({
+  rotuloDescartar,
+  aoDescartar,
+  aoContinuar,
+  rotuloContinuar = "Continuar editando",
+}: {
+  rotuloDescartar: string;
+  aoDescartar: () => void;
+  aoContinuar: () => void;
+  rotuloContinuar?: string;
+}) {
+  return (
+    <div className="flex w-full flex-wrap-reverse items-center justify-between gap-2">
+      <button
+        type="button"
+        onClick={aoDescartar}
+        className="rounded-md px-2 py-1 text-xs text-red-600/80 transition-colors duration-240 hover:bg-red-500/10 hover:text-red-600 dark:text-red-300/80 dark:hover:text-red-300"
+      >
+        {rotuloDescartar}
+      </button>
+      <button
+        type="button"
+        onClick={aoContinuar}
+        className="ml-auto rounded-md border border-primary bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-all duration-240 hover:bg-primary/90 active:scale-[0.98]"
+      >
+        {rotuloContinuar}
+      </button>
+    </div>
+  );
+}

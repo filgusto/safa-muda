@@ -1,0 +1,71 @@
+{
+  "nomeComum": "Jambu",
+  "nomeCientifico": "Acmella oleracea",
+  "familia": "Asteraceae",
+  "sinonimos": [
+    "Agrião-do-pará",
+    "Agrião-do-norte",
+    "Agrião-do-brasil",
+    "Jambuaçu",
+    "Jamburana",
+    "Erva-de-maluca",
+    "Agriãozinho",
+    "Pimenteira",
+    "Pimenta-do-pará",
+    "Pimenta-d'água",
+    "Agrião-do-mato",
+    "Botão-de-ouro",
+    "Agrião-bravo",
+    "Abecedária",
+    "Spilanthes oleracea"
+  ],
+  "gbifId": 5386764,
+  "inaturalistId": 709022,
+
+  "grupos": ["hortalica", "panc", "medicinal"],
+  "biomas": ["amazonia", "mata_atlantica"],
+
+  "diasParaColherMin": 40,
+  "diasParaColherMax": 80,
+  "espacamentoEntreLinhasMinM": 0.2,
+  "espacamentoEntreLinhasMaxM": 0.25,
+  "espacamentoNaLinhaMinM": 0.2,
+  "espacamentoNaLinhaMaxM": 0.25,
+
+  "alturaMaduraM": 0.4,
+  "cicloDeVida": ["perene"],
+  "habito": ["erva"],
+
+  "notas": [
+    "Altura: a Embrapa Hortaliças registra \"entre 30 cm e 40 cm\"; o campo guarda o teto da faixa.",
+    "Dias para colher: a faixa junta duas fontes contadas a partir da semeadura. A Circular Técnica 11 diz que a cultivar Nazaré \"pode ser colhido aos 40 dias após a semeadura\"; a Embrapa Hortaliças diz \"a partir de 45 dias após o transplantio das estacas ou a partir de 80 dias após o semeio\".",
+    "Espaçamento: a Circular Técnica 11 recomenda 20 cm x 20 cm com quatro plantas por cova para a cultivar Nazaré; a Embrapa Hortaliças recomenda \"de 20 cm a 25 cm entre plantas\", sem informar o valor entre linhas.",
+    "Rebrota não foi preenchida porque nenhuma fonte consultada trata de corte drástico. O que se registra é colheita repetida de ramos: \"Produz de dois a três maços por metro quadrado a cada 2 a 4 semanas\" (Embrapa Hortaliças), enquanto a Circular Técnica 11 colhe por arranquio da planta inteira.",
+    "Estrato, sucessão e sistema ficaram em branco: a Tabela Guia de Estratos Agroflorestais não traz esta espécie e nenhuma outra fonte consultada a classifica nesses eixos.",
+    "Propagação por sementes ou por enraizamento de ramos (estacas), que desidratam rápido e precisam ser transplantados logo (Embrapa Hortaliças).",
+    "Perene segundo a Embrapa Hortaliças, mas cultivada como cultura de ciclo curto: \"havendo perda de vigor é necessário renovar o canteiro\".",
+    "Clima: pleno desenvolvimento acima de 25 °C; ambiente seco e temperaturas abaixo de 18 °C prejudicam o crescimento (Embrapa Hortaliças).",
+    "A Flora e Funga do Brasil registra a espécie como naturalizada, não endêmica, nos domínios Amazônia e Mata Atlântica."
+  ],
+
+  "fontes": {
+    "nome_comum": "embrapa-hortalicas-jambu",
+    "nome_cientifico": "flora-e-funga-do-brasil",
+    "familia": "flora-e-funga-do-brasil",
+    "sinonimos": "embrapa-ct11-jambu-nazare",
+    "gbif_id": "gbif",
+    "inaturalist_id": "inaturalist",
+    "grupos": "embrapa-hortalicas-jambu",
+    "biomas": "flora-e-funga-do-brasil",
+    "dias_para_colher_min": "embrapa-ct11-jambu-nazare",
+    "dias_para_colher_max": "embrapa-hortalicas-jambu",
+    "espacamento_entre_linhas_min_m": "embrapa-ct11-jambu-nazare",
+    "espacamento_entre_linhas_max_m": "embrapa-hortalicas-jambu",
+    "espacamento_na_linha_min_m": "embrapa-ct11-jambu-nazare",
+    "espacamento_na_linha_max_m": "embrapa-hortalicas-jambu",
+    "altura_madura_m": "embrapa-hortalicas-jambu",
+    "ciclo_de_vida": "embrapa-hortalicas-jambu",
+    "habito": "flora-e-funga-do-brasil",
+    "notas": "correcao-editorial"
+  }
+}

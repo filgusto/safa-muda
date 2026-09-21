@@ -13,3 +13,6 @@ app/out/
 
 # Drizzle
 app/db/migrations/meta/_journal.json.bak
+
+# Backups locais de banco + MinIO — nunca versionados
+_backups/

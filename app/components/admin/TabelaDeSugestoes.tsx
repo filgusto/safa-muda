@@ -247,9 +247,10 @@ function DetalheDeFoto({
       </div>
 
       <Avaliacao
-        aceitar={() => aprovarFoto(sugestao.id)}
-        rejeitar={() => removerFoto(sugestao.id)}
-        avisoAoRejeitar="Rejeitar apaga a foto e o arquivo."
+        exigeNotaParaRejeitar
+        aceitar={(nota) => aprovarFoto(sugestao.id, nota)}
+        rejeitar={(nota) => removerFoto(sugestao.id, nota ?? "")}
+        avisoAoRejeitar="Rejeitar apaga a foto e o arquivo, sem volta. O motivo vai por e-mail a quem enviou."
         concluir={concluir}
       />
     </div>

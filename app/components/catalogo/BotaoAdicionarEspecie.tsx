@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
 import { useSessaoHidratada } from "@/lib/auth-client.ts";
 import { FormularioEspecie } from "@/components/wiki/FormularioEspecie.tsx";
+import {
+  AcoesDeDescarte,
+  DialogoDeConfirmacao,
+} from "@/components/wiki/DialogoDeConfirmacao.tsx";
 
 /**
  * Botão que abre, por cima do catálogo, o formulário de proposta de espécie
@@ -17,15 +21,41 @@ import { FormularioEspecie } from "@/components/wiki/FormularioEspecie.tsx";
  * (`nova`) e a outra dinâmica (`[slug]`) — a navegação client-side cai sempre
  * na dinâmica e devolve 404. `/safdex/nova` continua existindo como página
  * própria, para quem chega por link direto ou sem JS.
+ *
+ * Com o formulário já preenchido, fechar — clique fora, Esc ou X — não fecha:
+ * pergunta antes, porque fechar desmonta o formulário e o que foi digitado vai
+ * junto. Mesma regra da ficha da espécie (ver ModalDaEspecie.tsx); intocado,
+ * fecha direto.
  */
 export function BotaoAdicionarEspecie() {
   const { data: sessao } = useSessaoHidratada();
   const [aberto, setAberto] = useState(false);
+  const [preenchido, setPreenchido] = useState(false);
+  const [perguntando, setPerguntando] = useState(false);
+
+  const fechar = useCallback(() => {
+    setPerguntando(false);
+    setPreenchido(false);
+    setAberto(false);
+  }, []);
 
   if (!sessao) return null;
 
   return (
-    <Dialog.Root open={aberto} onOpenChange={setAberto}>
+    <Dialog.Root
+      open={aberto}
+      onOpenChange={(estado) => {
+        if (estado) {
+          setAberto(true);
+          return;
+        }
+        if (preenchido) {
+          setPerguntando(true);
+          return;
+        }
+        fechar();
+      }}
+    >
       <Dialog.Trigger className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-primary transition-colors duration-240 hover:bg-primary/20">
         <Plus size={13} />
         Adicionar espécie
@@ -59,10 +89,25 @@ export function BotaoAdicionarEspecie() {
             {aberto && (
               <FormularioEspecie
                 modo="nova"
-                aoConcluir={() => setAberto(false)}
+                aoConcluir={fechar}
+                aoMudarPreenchimento={setPreenchido}
               />
             )}
           </div>
+
+          <DialogoDeConfirmacao
+            aberto={perguntando}
+            aoMudar={setPerguntando}
+            titulo="Fechar sem enviar?"
+            descricao="Você está propondo uma espécie nova. Se fechar esta janela sem enviar, os dados que você preencheu serão perdidos."
+            acoes={
+              <AcoesDeDescarte
+                rotuloDescartar="Sair e descartar"
+                aoDescartar={fechar}
+                aoContinuar={() => setPerguntando(false)}
+              />
+            }
+          />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

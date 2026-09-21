@@ -63,6 +63,10 @@ export const FONTE_LABEL: Record<string, string> = {
   "usda-plants": "USDA PLANTS Database",
   gbif: "GBIF",
   inaturalist: "iNaturalist",
+  "embrapa-ct11-jambu-nazare":
+    "Recomendações para a produção de jambu: cultivar Nazaré (Poltronieri, Muller & Poltronieri — Embrapa Amazônia Oriental, Circular Técnica 11, 2000)",
+  "embrapa-hortalicas-jambu":
+    "Hortaliças não convencionais: jambu (Embrapa Hortaliças, 2017)",
 };
 
 export const FONTE_LABEL_CURTO: Record<string, string> = {
@@ -74,4 +78,6 @@ export const FONTE_LABEL_CURTO: Record<string, string> = {
   "usda-plants": "USDA PLANTS",
   gbif: "GBIF",
   inaturalist: "iNaturalist",
+  "embrapa-ct11-jambu-nazare": "Embrapa, Circular Técnica 11",
+  "embrapa-hortalicas-jambu": "Embrapa Hortaliças",
 };

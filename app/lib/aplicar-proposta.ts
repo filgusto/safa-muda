@@ -26,7 +26,13 @@ export { chaveDeFonte };
  */
 
 export type ResultadoDaAplicacao =
-  | { ok: true; slug: string; nomeDaEspecie: string; autorId: string }
+  | {
+      ok: true;
+      tipo: "edicao" | "nova_especie";
+      slug: string;
+      nomeDaEspecie: string;
+      autorId: string;
+    }
   | { ok: false; erro: string };
 
 export async function aplicarPropostaAprovada(
@@ -132,7 +138,13 @@ export async function aplicarPropostaAprovada(
       link: `/safdex/${slug}`,
     });
 
-    return { ok: true, slug, nomeDaEspecie, autorId: proposta.autorId };
+    return {
+      ok: true,
+      tipo: proposta.tipo,
+      slug,
+      nomeDaEspecie,
+      autorId: proposta.autorId,
+    };
   });
 }
 
