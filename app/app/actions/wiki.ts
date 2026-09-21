@@ -17,6 +17,7 @@ import {
   chaveDeFonte,
 } from "@/lib/aplicar-proposta.ts";
 import { avisarAvaliacao } from "@/lib/aviso-de-avaliacao.ts";
+import { listarRevisoesDaEspecie } from "@/lib/wiki.ts";
 import { buscarGbifId, buscarINaturalistId } from "@/lib/links-externos.ts";
 import {
   buscarHabitoECiclo,
@@ -41,6 +42,30 @@ function tratar(erro: unknown): Resultado {
   if (erro instanceof AccessError) return { ok: false, erro: erro.message };
   console.error("Falha em ação da wiki:", erro);
   return { ok: false, erro: "Não foi possível concluir. Tente de novo." };
+}
+
+export type Revisao = Awaited<
+  ReturnType<typeof listarRevisoesDaEspecie>
+>[number];
+
+/**
+ * Histórico de uma espécie, para a equipe.
+ *
+ * Vem por ação, e não junto da ficha, porque a ficha é ISR: o HTML é gerado
+ * uma vez e servido a todo mundo, então tudo o que entrasse nas props ficaria
+ * legível no código-fonte da página, escondido ou não. Aqui a sessão é lida a
+ * cada chamada, e quem não modera não recebe nada.
+ */
+export async function listarHistorico(
+  speciesId: string,
+): Promise<{ ok: true; revisoes: Revisao[] } | { ok: false; erro: string }> {
+  try {
+    await requireModerator();
+    return { ok: true, revisoes: await listarRevisoesDaEspecie(speciesId) };
+  } catch (erro) {
+    const tratado = tratar(erro);
+    return { ok: false, erro: tratado.erro ?? "Não foi possível carregar." };
+  }
 }
 
 /** Cria uma proposta de edição sobre uma espécie existente. */
@@ -338,7 +363,7 @@ export async function aprovarProposta(
     await avisarAvaliacao({
       autorId: resultado.autorId,
       aprovada: true,
-      oQue: "Sua sugestão de alteração",
+      oQue: sujeitoDoAviso(resultado.tipo),
       nomeDaEspecie: resultado.nomeDaEspecie,
       slug: resultado.slug,
       nota,
@@ -389,27 +414,42 @@ export async function rejeitarProposta(
       });
     });
 
-    // Proposta de espécie nova rejeitada não tem ficha para onde apontar.
-    if (proposta.speciesId) {
-      const especie = await db.query.species.findFirst({
-        where: eq(species.id, proposta.speciesId),
-      });
-      if (especie) {
-        await avisarAvaliacao({
-          autorId: proposta.autorId,
-          aprovada: false,
-          oQue: "Sua sugestão de alteração",
-          nomeDaEspecie: especie.nomeComum,
-          slug: especie.slug,
-          nota: nota.trim(),
-        });
-      }
-    }
+    // Proposta de espécie nova rejeitada não tem ficha para onde apontar, e a
+    // espécie de uma edição pode ter sumido nesse meio-tempo. O aviso sai nos
+    // dois casos — sem ele, quem escreveu uma ficha inteira nunca saberia que
+    // foi recusada, porque a notificação interna ainda não tem tela.
+    const especie = proposta.speciesId
+      ? await db.query.species.findFirst({
+          where: eq(species.id, proposta.speciesId),
+        })
+      : null;
+
+    await avisarAvaliacao({
+      autorId: proposta.autorId,
+      aprovada: false,
+      oQue: sujeitoDoAviso(proposta.tipo),
+      nomeDaEspecie: especie?.nomeComum ?? nomeProposto(proposta.patch),
+      slug: especie?.slug,
+      nota: nota.trim(),
+    });
 
     return { ok: true, mensagem: "Proposta rejeitada." };
   } catch (erro) {
     return tratar(erro);
   }
+}
+
+/** Sujeito da frase do e-mail de avaliação. */
+function sujeitoDoAviso(tipo: "edicao" | "nova_especie"): string {
+  return tipo === "nova_especie"
+    ? "Sua proposta de espécie nova"
+    : "Sua sugestão de alteração";
+}
+
+/** Nome da espécie proposta, para o aviso de uma ficha que nunca existiu. */
+function nomeProposto(patch: Record<string, unknown>): string {
+  const nome = patch.nomeComum;
+  return typeof nome === "string" && nome.trim() ? nome : "a espécie proposta";
 }
 
 function primeiroErro(erro: { issues: { message: string }[] }): string {

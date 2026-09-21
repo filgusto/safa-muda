@@ -288,7 +288,10 @@ export async function importarFotoDoWikimedia(
   }
 }
 
-export async function aprovarFoto(id: string): Promise<Resultado> {
+export async function aprovarFoto(
+  id: string,
+  nota?: string,
+): Promise<Resultado> {
   try {
     const viewer = await requireModerator();
 
@@ -314,9 +317,47 @@ export async function aprovarFoto(id: string): Promise<Resultado> {
           oQue: "Sua foto",
           nomeDaEspecie: especie.nomeComum,
           slug: especie.slug,
+          nota: nota?.trim() || undefined,
         });
       }
     }
+    return { ok: true };
+  } catch (erro) {
+    return tratar(erro);
+  }
+}
+
+const faseSchema = z.object({
+  id: z.string().uuid(),
+  tag: z.enum(TAGS_DE_FOTO),
+});
+
+/**
+ * Troca a fase da planta que a foto retrata.
+ *
+ * Só a equipe: é classificação do catálogo, não conteúdo enviado — e a fase
+ * governa a ordem da galeria e a escolha automática da capa (core/fotos.ts),
+ * então errá-la reordena a ficha inteira.
+ */
+export async function definirFaseDaFoto(entrada: unknown): Promise<Resultado> {
+  try {
+    await requireModerator();
+
+    const analise = faseSchema.safeParse(entrada);
+    if (!analise.success) return { ok: false, erro: "Dados inválidos." };
+    const { id, tag } = analise.data;
+
+    const foto = await db.query.speciesFoto.findFirst({
+      where: eq(speciesFoto.id, id),
+    });
+    if (!foto) return { ok: false, erro: "Foto não encontrada." };
+
+    await db.update(speciesFoto).set({ tag }).where(eq(speciesFoto.id, id));
+
+    const especie = await db.query.species.findFirst({
+      where: eq(species.id, foto.speciesId),
+    });
+    if (especie) revalidar(especie.slug);
     return { ok: true };
   } catch (erro) {
     return tratar(erro);
@@ -381,8 +422,16 @@ export async function definirFotoPrincipal(id: string): Promise<Resultado> {
  * alcança. A ordem é objeto primeiro, registro depois — se o MinIO falhar, a
  * linha continua lá e a remoção pode ser repetida; o inverso deixaria arquivo
  * pago e invisível.
+ *
+ * Remover foto pendente de outra pessoa é rejeitá-la, e aí a `nota` é
+ * obrigatória — mesma regra de `rejeitarProposta`: recusar sem explicar
+ * desperdiça o trabalho de quem contribuiu, e aqui não há volta. Remover foto
+ * já publicada é manutenção do catálogo e não pede nota.
  */
-export async function removerFoto(id: string): Promise<Resultado> {
+export async function removerFoto(
+  id: string,
+  nota?: string,
+): Promise<Resultado> {
   try {
     const viewer = await requireModerator();
 
@@ -390,6 +439,11 @@ export async function removerFoto(id: string): Promise<Resultado> {
       where: eq(speciesFoto.id, id),
     });
     if (!foto) return { ok: false, erro: "Foto não encontrada." };
+
+    const ehRejeicao = foiEnviadaParaAvaliacao(foto, viewer.id);
+    if (ehRejeicao && !nota?.trim()) {
+      return { ok: false, erro: "Explique o motivo da rejeição." };
+    }
 
     const arquivo = await db.query.media.findFirst({
       where: eq(media.id, foto.mediaId),
@@ -410,13 +464,14 @@ export async function removerFoto(id: string): Promise<Resultado> {
       revalidar(especie.slug);
       // Remover uma foto pendente é rejeitá-la; remover uma já publicada é
       // manutenção do catálogo, e não pede aviso.
-      if (foiEnviadaParaAvaliacao(foto, viewer.id)) {
+      if (ehRejeicao) {
         await avisarAvaliacao({
           autorId: foto.enviadaPor!,
           aprovada: false,
           oQue: "Sua foto",
           nomeDaEspecie: especie.nomeComum,
           slug: especie.slug,
+          nota: nota!.trim(),
         });
       }
     }

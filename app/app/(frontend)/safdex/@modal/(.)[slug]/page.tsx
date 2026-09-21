@@ -4,7 +4,6 @@ import {
   escolherFotoPrincipal,
   listarFotosDaEspecie,
 } from "@/lib/catalogo.ts";
-import { listarRevisoesDaEspecie } from "@/lib/wiki.ts";
 import {
   DetalheEspecie,
   IdentidadeDaEspecie,
@@ -19,10 +18,7 @@ export default async function EspecieModal({
   const especie = await buscarEspeciePorSlug((await params).slug);
   if (!especie) notFound();
 
-  const [revisoes, fotos] = await Promise.all([
-    listarRevisoesDaEspecie(especie.id),
-    listarFotosDaEspecie(especie.id),
-  ]);
+  const fotos = await listarFotosDaEspecie(especie.id);
   const fotoPrincipal = escolherFotoPrincipal(fotos);
 
   return (
@@ -33,12 +29,7 @@ export default async function EspecieModal({
       cabecalho={<IdentidadeDaEspecie especie={especie} />}
       fotoDeFundo={fotoPrincipal}
     >
-      <DetalheEspecie
-        especie={especie}
-        revisoes={revisoes}
-        fotos={fotos}
-        comCabecalho={false}
-      />
+      <DetalheEspecie especie={especie} fotos={fotos} comCabecalho={false} />
     </ModalDaEspecie>
   );
 }

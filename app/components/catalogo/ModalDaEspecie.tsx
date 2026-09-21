@@ -7,7 +7,10 @@ import {
   ProvedorDoModoDeEdicao,
   useModoDeEdicao,
 } from "@/components/wiki/ModoDeEdicao.tsx";
-import { DialogoDeConfirmacao } from "@/components/wiki/DialogoDeConfirmacao.tsx";
+import {
+  AcoesDeDescarte,
+  DialogoDeConfirmacao,
+} from "@/components/wiki/DialogoDeConfirmacao.tsx";
 
 /**
  * Ficha da espécie sobreposta ao catálogo, com o botão de modo de edição na
@@ -93,29 +96,15 @@ function Moldura({
         titulo="Fechar sem enviar?"
         descricao="Você está no modo de edição. Se fechar esta janela sem salvar e enviar, as modificações que você fez serão perdidas."
         acoes={
-          // Continuar é o caminho seguro e vem em destaque, à direita;
-          // descartar fica discreto, para não ser clicado por reflexo. Em tela
-          // estreita, `wrap-reverse` põe o descartar embaixo, e não em cima.
-          <div className="flex w-full flex-wrap-reverse items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setPerguntando(false);
-                descartar();
-                fecharDeVez.current();
-              }}
-              className="rounded-md px-2 py-1 text-xs text-red-600/80 transition-colors duration-240 hover:bg-red-500/10 hover:text-red-600 dark:text-red-300/80 dark:hover:text-red-300"
-            >
-              Descartar alterações e fechar janela
-            </button>
-            <button
-              type="button"
-              onClick={() => setPerguntando(false)}
-              className="ml-auto rounded-md border border-primary bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-all duration-240 hover:bg-primary/90 active:scale-[0.98]"
-            >
-              Continuar editando
-            </button>
-          </div>
+          <AcoesDeDescarte
+            rotuloDescartar="Descartar alterações e fechar janela"
+            aoDescartar={() => {
+              setPerguntando(false);
+              descartar();
+              fecharDeVez.current();
+            }}
+            aoContinuar={() => setPerguntando(false)}
+          />
         }
       />
     </ModalDoCatalogo>

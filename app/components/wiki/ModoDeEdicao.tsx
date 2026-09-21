@@ -21,13 +21,15 @@ import { avisar } from "@/components/layout/AvisoNoTopo.tsx";
 import { proporEdicoesEmLote } from "@/app/actions/wiki.ts";
 import {
   adicionarFoto,
+  definirFaseDaFoto,
   definirFotoPrincipal,
   importarFotoDoWikimedia,
+  removerFoto,
 } from "@/app/actions/fotos.ts";
 import { enviarMidia } from "@/lib/enviar-midia.ts";
 import { useSessaoHidratada } from "@/lib/auth-client.ts";
 import { cn } from "@/lib/utils.ts";
-import type { TagDeFoto } from "@/core/fotos.ts";
+import { TAG_DE_FOTO_LABEL, type TagDeFoto } from "@/core/fotos.ts";
 import {
   agruparPorFonte,
   type AlteracaoDeCampo,
@@ -87,7 +89,19 @@ type ModoDeEdicao = {
    */
   fotoPrincipal: string | null;
   escolherFotoPrincipal: (id: string | null) => void;
-  /** Alterações aplicadas + fotos + troca da principal. Um editor aberto não conta. */
+  /**
+   * Fotos já publicadas marcadas para sair no envio — também só a
+   * administração. Marcar de novo desmarca.
+   */
+  fotosRemovidas: string[];
+  alternarRemocaoDeFoto: (id: string) => void;
+  /**
+   * Fases trocadas neste rascunho, por foto já publicada — moderação e
+   * administração. `null` em `definirFaseDeFoto` desfaz a troca.
+   */
+  fasesDeFoto: Record<string, TagDeFoto>;
+  definirFaseDeFoto: (id: string, fase: TagDeFoto | null) => void;
+  /** Alterações aplicadas + fotos + principal + fases + remoções. Um editor aberto não conta. */
   quantidade: number;
   /** Há algo a perder se o modo for encerrado agora? */
   temAlteracoes: boolean;
@@ -96,6 +110,13 @@ type ModoDeEdicao = {
   /** Envia o rascunho e, se tudo der certo, encerra o modo. */
   enviar: () => Promise<Resultado>;
 };
+
+/** O registro sem uma chave. */
+function semAChave<T>(registro: Record<string, T>, chave: string) {
+  return Object.fromEntries(
+    Object.entries(registro).filter(([outra]) => outra !== chave),
+  );
+}
 
 /** Só a prévia de upload é object URL — a do Commons não precisa (nem pode) ser revogada. */
 function revogarPreviaSeLocal(foto: FotoPendente) {
@@ -132,6 +153,32 @@ export function ProvedorDoModoDeEdicao({
   >({});
   const [fotos, setFotos] = useState<FotoPendente[]>([]);
   const [fotoPrincipal, escolherFotoPrincipal] = useState<string | null>(null);
+  const [fotosRemovidas, setFotosRemovidas] = useState<string[]>([]);
+  const [fasesDeFoto, setFasesDeFoto] = useState<Record<string, TagDeFoto>>({});
+
+  const definirFaseDeFoto = useCallback(
+    (id: string, fase: TagDeFoto | null) =>
+      setFasesDeFoto((anteriores) => {
+        const resto = semAChave(anteriores, id);
+        return fase === null ? resto : { ...resto, [id]: fase };
+      }),
+    [],
+  );
+
+  /**
+   * Marcar uma foto para sair desfaz a escolha dela como principal: as duas
+   * juntas seriam uma contradição, e o envio deixaria a espécie sem capa.
+   */
+  const alternarRemocaoDeFoto = useCallback((id: string) => {
+    setFotosRemovidas((anteriores) =>
+      anteriores.includes(id)
+        ? anteriores.filter((outro) => outro !== id)
+        : [...anteriores, id],
+    );
+    escolherFotoPrincipal((atual) => (atual === id ? null : atual));
+    // Foto que vai sair não tem fase a trocar.
+    setFasesDeFoto((anteriores) => semAChave(anteriores, id));
+  }, []);
 
   // A prévia de upload é um object URL: sem revogar, cada foto descartada
   // vaza memória. A do Commons é a miniatura do próprio Wikimedia — nada a
@@ -141,7 +188,11 @@ export function ProvedorDoModoDeEdicao({
   useEffect(() => () => fotosAtuais.current.forEach(revogarPreviaSeLocal), []);
 
   const quantidade =
-    Object.keys(alteracoes).length + fotos.length + (fotoPrincipal ? 1 : 0);
+    Object.keys(alteracoes).length +
+    fotos.length +
+    (fotoPrincipal ? 1 : 0) +
+    Object.keys(fasesDeFoto).length +
+    fotosRemovidas.length;
   const temAlteracoes = quantidade > 0 || campoAberto !== null;
 
   // Recarregar ou sair do site com rascunho pendente pede confirmação ao
@@ -158,6 +209,8 @@ export function ProvedorDoModoDeEdicao({
     setFotos([]);
     setAlteracoes({});
     escolherFotoPrincipal(null);
+    setFotosRemovidas([]);
+    setFasesDeFoto({});
     abrirCampo(null);
     setAtivo(false);
   }, []);
@@ -171,10 +224,11 @@ export function ProvedorDoModoDeEdicao({
   }, []);
 
   /**
-   * Campos primeiro, numa proposta por fonte e numa transação só; depois a
-   * troca da foto principal; por fim as fotos novas, uma a uma, porque cada
-   * uma sobe ao MinIO. Se algo falhar, o que já foi enviado sai do rascunho e
-   * o resto fica para tentar de novo.
+   * Campos primeiro, numa proposta por fonte e numa transação só; depois o que
+   * muda em foto já publicada — a troca da principal e as trocas de fase —;
+   * então as fotos novas, uma a uma, porque cada uma sobe ao MinIO; e por
+   * último as remoções, que apagam arquivo e não têm volta. Se algo falhar, o
+   * que já foi enviado sai do rascunho e o resto fica para tentar de novo.
    */
   async function enviar(): Promise<Resultado> {
     const entradas = Object.entries(alteracoes);
@@ -198,6 +252,17 @@ export function ProvedorDoModoDeEdicao({
         };
       }
       escolherFotoPrincipal(null);
+    }
+
+    for (const [id, fase] of Object.entries(fasesDeFoto)) {
+      const resultado = await definirFaseDaFoto({ id, tag: fase });
+      if (!resultado.ok) {
+        return {
+          ok: false,
+          erro: resultado.erro ?? "Falha ao trocar a fase de uma foto.",
+        };
+      }
+      definirFaseDeFoto(id, null);
     }
 
     for (const foto of fotos) {
@@ -239,13 +304,26 @@ export function ProvedorDoModoDeEdicao({
       }
     }
 
-    // Só a troca da principal, que é da administração e entra direto: não há
-    // nada indo para a fila de avaliação.
-    const soAPrincipal = entradas.length === 0 && fotos.length === 0;
+    for (const id of fotosRemovidas) {
+      const resultado = await removerFoto(id);
+      if (!resultado.ok) {
+        return {
+          ok: false,
+          erro: resultado.erro ?? "Falha ao remover uma foto.",
+        };
+      }
+      setFotosRemovidas((anteriores) =>
+        anteriores.filter((outro) => outro !== id),
+      );
+    }
+
+    // Só mudanças da equipe, que entram direto: não há nada indo para a fila
+    // de avaliação.
+    const soDaAdministracao = entradas.length === 0 && fotos.length === 0;
     descartar();
     avisar(
-      soAPrincipal
-        ? `A foto principal de ${nomeDaEspecie} foi atualizada.`
+      soDaAdministracao
+        ? `As fotos de ${nomeDaEspecie} foram atualizadas.`
         : `Suas propostas de modificação para a espécie ${nomeDaEspecie} foram enviadas à equipe do Safa Muda. Você receberá uma confirmação de incorporação ou rejeição das modificações em seu e-mail cadastrado.`,
     );
     // Fotos da equipe entram publicadas; as demais ficam na fila.
@@ -285,6 +363,10 @@ export function ProvedorDoModoDeEdicao({
         tirarFoto,
         fotoPrincipal,
         escolherFotoPrincipal,
+        fotosRemovidas,
+        alternarRemocaoDeFoto,
+        fasesDeFoto,
+        definirFaseDeFoto,
         quantidade,
         temAlteracoes,
         descartar,
@@ -402,6 +484,8 @@ function BarraDeEdicao() {
     alteracoes,
     fotos,
     fotoPrincipal,
+    fotosRemovidas,
+    fasesDeFoto,
     descartar,
     enviar,
   } = useModoDeEdicao();
@@ -434,6 +518,10 @@ function BarraDeEdicao() {
     ),
     ...fotos.map((foto) => `Foto nova: ${foto.credito}`),
     ...(fotoPrincipal ? ["Nova foto principal da espécie"] : []),
+    ...Object.values(fasesDeFoto).map(
+      (fase) => `Fase de uma foto passa a ser: ${TAG_DE_FOTO_LABEL[fase]}`,
+    ),
+    ...fotosRemovidas.map(() => "Foto removida da espécie (apaga o arquivo)"),
   ];
 
   return (
@@ -539,8 +627,8 @@ function BarraDeEdicao() {
         }
       >
         <ul className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border/60 bg-bg-surface2/40 p-3 text-xs leading-[1.6] text-muted-foreground">
-          {itens.map((item) => (
-            <li key={item}>{item}</li>
+          {itens.map((item, indice) => (
+            <li key={`${indice}-${item}`}>{item}</li>
           ))}
         </ul>
         {campoAberto && (
