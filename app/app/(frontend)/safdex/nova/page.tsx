@@ -30,8 +30,9 @@ export default async function NovaEspeciePage() {
           Adicionar espécie
         </h1>
         <p className="max-w-[60ch] leading-[1.7] text-muted-foreground">
-          Proponha uma espécie para o SAFdex. Um moderador vai avaliar antes de
-          publicar.
+          Proponha uma espécie para o SAFdex. Os únicos campos obrigatórios são
+          o nome comum e o nome científico da planta. Um moderador vai avaliar
+          antes de publicar.
         </p>
       </header>
 

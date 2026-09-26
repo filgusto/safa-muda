@@ -1,22 +1,66 @@
 import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { species, speciesRevision, user } from "@/db/schema/index.ts";
+import { linksDaCitacao, nomeParaCredito } from "@/lib/perfil-de-usuario.ts";
 
 /** Consultas da wiki. Mutações ficam em app/actions/wiki.ts. */
 
 export async function listarRevisoesDaEspecie(speciesId: string) {
-  return db
+  const linhas = await db
     .select({
       id: speciesRevision.id,
       patch: speciesRevision.patch,
       fonte: speciesRevision.fonte,
       criadoEm: speciesRevision.criadoEm,
+      autorCitacao: speciesRevision.autorCitacao,
       autorNome: user.name,
+      creditoNome: user.creditoNome,
+      creditoNomeOutro: user.creditoNomeOutro,
+      linkInstagram: user.linkInstagram,
+      linkSite: user.linkSite,
+      linkLattes: user.linkLattes,
+      citarInstagram: user.citarInstagram,
+      citarSite: user.citarSite,
+      citarLattes: user.citarLattes,
     })
     .from(speciesRevision)
     .leftJoin(user, eq(speciesRevision.autorId, user.id))
     .where(eq(speciesRevision.speciesId, speciesId))
     .orderBy(desc(speciesRevision.criadoEm));
+
+  // O nome sai do jeito que a pessoa escolheu ser creditada. Autor removido
+  // continua null (a tela mostra "autor removido").
+  return linhas.map(
+    ({
+      autorCitacao,
+      autorNome,
+      creditoNome,
+      creditoNomeOutro,
+      linkInstagram,
+      linkSite,
+      linkLattes,
+      citarInstagram,
+      citarSite,
+      citarLattes,
+      ...revisao
+    }) => ({
+      ...revisao,
+      autorNome: autorNome
+        ? nomeParaCredito(autorNome, creditoNome, creditoNomeOutro)
+        : // Conta excluída: vale a citação que a pessoa escolheu manter.
+          autorCitacao,
+      // Só os links que a pessoa cadastrou e escolheu incluir na citação.
+      autorLinks: linksDaCitacao({
+        creditoNome,
+        linkInstagram,
+        linkSite,
+        linkLattes,
+        citarInstagram: citarInstagram ?? false,
+        citarSite: citarSite ?? false,
+        citarLattes: citarLattes ?? false,
+      }),
+    }),
+  );
 }
 
 /**

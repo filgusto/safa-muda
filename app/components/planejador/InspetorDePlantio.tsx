@@ -218,7 +218,7 @@ export function InspetorDePlantio({
       style={{
         left: posicao?.left ?? ponto.x,
         top: posicao?.top ?? ponto.y,
-        maxHeight: `calc(100vh - ${MARGEM_DA_JANELA * 2}px)`,
+        maxHeight: `calc(100dvh - ${MARGEM_DA_JANELA * 2}px)`,
         // Antes da primeira medição a caixa existe mas ainda não tem lugar.
         visibility: posicao ? "visible" : "hidden",
       }}

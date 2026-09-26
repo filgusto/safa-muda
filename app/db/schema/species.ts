@@ -20,6 +20,7 @@ import {
   biomaEnum,
   cicloDeVidaEnum,
   frutificacaoEnum,
+  mesEnum,
   habitoEnum,
   rebrotaEnum,
   gemaDeRebrotaEnum,
@@ -82,6 +83,12 @@ export const species = pgTable(
     // ciclo vêm de db/scripts/enriquecer-ciclo-e-habito.ts; o resto, da wiki.
     cicloDeVida: cicloDeVidaEnum("ciclo_de_vida").array().notNull().default([]),
     frutificacao: frutificacaoEnum("frutificacao"),
+    // Meses do ano em que frutifica. Independente de `frutificacao`; só a wiki
+    // preenche, com fonte. Ver core/ciclo.ts.
+    mesesDeFrutificacao: mesEnum("meses_de_frutificacao")
+      .array()
+      .notNull()
+      .default([]),
     habito: habitoEnum("habito").array().notNull().default([]),
     // Longevidade típica até a senescência, em faixa como as fontes dão. Só o
     // mínimo significa "mais de N anos" — não se inventa teto.

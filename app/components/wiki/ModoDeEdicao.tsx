@@ -77,6 +77,12 @@ type ModoDeEdicao = {
    */
   ultimaFonte: string;
   lembrarFonte: (fonte: string) => void;
+  /**
+   * Último local de observação declarado nesta edição — mesma ideia da fonte.
+   * `undefined` até alguém declarar; aí vale a região do perfil.
+   */
+  ultimoLocal: string | undefined;
+  lembrarLocal: (local: string) => void;
   alteracoes: Record<string, AlteracaoDeCampo>;
   aplicarAlteracao: (campo: string, alteracao: AlteracaoDeCampo) => void;
   desfazerAlteracao: (campo: string) => void;
@@ -148,6 +154,7 @@ export function ProvedorDoModoDeEdicao({
   const [ativo, setAtivo] = useState(false);
   const [campoAberto, abrirCampo] = useState<string | null>(null);
   const [ultimaFonte, lembrarFonte] = useState("");
+  const [ultimoLocal, lembrarLocal] = useState<string | undefined>(undefined);
   const [alteracoes, setAlteracoes] = useState<
     Record<string, AlteracaoDeCampo>
   >({});
@@ -342,6 +349,8 @@ export function ProvedorDoModoDeEdicao({
         abrirCampo,
         ultimaFonte,
         lembrarFonte,
+        ultimoLocal,
+        lembrarLocal,
         alteracoes,
         aplicarAlteracao: (campo, alteracao) =>
           setAlteracoes((anteriores) => ({

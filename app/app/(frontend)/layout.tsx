@@ -59,7 +59,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="min-h-screen flex flex-col">
+      <body className="flex flex-col">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

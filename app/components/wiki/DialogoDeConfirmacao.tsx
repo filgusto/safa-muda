@@ -28,7 +28,7 @@ export function DialogoDeConfirmacao({
     <Dialog.Root open={aberto} onOpenChange={aoMudar}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-bg-base/60 duration-240 animate-in fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-2xl border border-bg-border bg-bg-surface1 p-6 shadow-2xl duration-240 animate-in fade-in-0 zoom-in-95">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-4 overflow-y-auto rounded-2xl border border-bg-border bg-bg-surface1 p-6 shadow-2xl duration-240 animate-in fade-in-0 zoom-in-95">
           <Dialog.Title className="font-serif text-xl font-semibold tracking-tight">
             {titulo}
           </Dialog.Title>

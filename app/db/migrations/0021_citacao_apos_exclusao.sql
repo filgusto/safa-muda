@@ -1,0 +1,1 @@
+ALTER TABLE "species_revision" ADD COLUMN "autor_citacao" text;

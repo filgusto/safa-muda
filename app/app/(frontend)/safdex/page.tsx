@@ -37,10 +37,10 @@ export default async function CatalogoPage({
     <main className="container mx-auto max-w-7xl px-6 pb-16 pt-6">
       <header className="mb-6">
         <h1 className="font-serif text-display-md font-semibold tracking-tight">
-          SAFdex
+          SAFdex Wiki
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Catálogo de plantas com foco em Sistemas Agroflorestais (SAF)
+          Catálogo wiki de plantas com foco em Sistemas Agroflorestais (SAF)
         </p>
       </header>
 

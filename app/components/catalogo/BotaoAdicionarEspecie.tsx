@@ -64,7 +64,7 @@ export function BotaoAdicionarEspecie() {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-bg-base/50 duration-320 animate-in fade-in-0" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(48rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-bg-border bg-bg-surface1 shadow-2xl duration-320 animate-in fade-in-0 zoom-in-95"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[88dvh] w-[min(48rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-bg-border bg-bg-surface1 shadow-2xl duration-320 animate-in fade-in-0 zoom-in-95"
         >
           <Dialog.Close
             aria-label="Fechar"
@@ -81,8 +81,9 @@ export function BotaoAdicionarEspecie() {
               Adicionar espécie
             </Dialog.Title>
             <p className="mb-8 max-w-[60ch] leading-[1.7] text-muted-foreground">
-              Proponha uma espécie para o SAFdex. Um moderador vai avaliar antes
-              de publicar.
+              Proponha uma espécie para o SAFdex. Os únicos campos obrigatórios
+              são o nome comum e o nome científico da planta. Um moderador vai
+              avaliar antes de publicar.
             </p>
 
             {/* Remontado a cada abertura: o formulário sempre começa vazio. */}
