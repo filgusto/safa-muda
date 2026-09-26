@@ -160,7 +160,7 @@ async function buscarFormaDeVidaFfbDireto(
   );
   url.searchParams.set("limit", "300");
 
-  const resposta = await fetch(url);
+  const resposta = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   if (!resposta.ok) throw new Error(`GBIF ${resposta.status}`);
 
   const dados = (await resposta.json()) as RespostaPerfisGbif;
@@ -196,7 +196,9 @@ async function buscarDuracaoUsdaDireto(
 
   const busca = new URL(`${USDA}/PlantSearch`);
   busca.searchParams.set("searchText", alvo);
-  const respostaBusca = await fetch(busca);
+  const respostaBusca = await fetch(busca, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!respostaBusca.ok) throw new Error(`USDA ${respostaBusca.status}`);
 
   const resultados = (await respostaBusca.json()) as { Plant: PlantaUsda }[];
@@ -215,7 +217,9 @@ async function buscarDuracaoUsdaDireto(
 
   const perfil = new URL(`${USDA}/PlantProfile`);
   perfil.searchParams.set("symbol", correspondencias[0].Symbol);
-  const respostaPerfil = await fetch(perfil);
+  const respostaPerfil = await fetch(perfil, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!respostaPerfil.ok) throw new Error(`USDA ${respostaPerfil.status}`);
 
   const planta = (await respostaPerfil.json()) as PlantaUsda;

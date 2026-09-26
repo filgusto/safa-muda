@@ -12,6 +12,7 @@ import {
   isModerator,
   AccessError,
 } from "@/lib/access.ts";
+import { consumir, MENSAGEM_DE_LIMITE, REGRAS } from "@/lib/limite-de-taxa.ts";
 import {
   removerObjeto,
   s3,
@@ -107,6 +108,9 @@ async function criarSpeciesFoto(params: {
 export async function adicionarFoto(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
+    if (!consumir(`foto:${viewer.id}`, REGRAS.proposta)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const analise = adicionarSchema.safeParse(entrada);
     if (!analise.success) {
@@ -175,7 +179,10 @@ export async function buscarPreviaDoWikimedia(
   url: string,
 ): Promise<ResultadoDePrevia> {
   try {
-    await requireViewer();
+    const viewer = await requireViewer();
+    if (!consumir(`previa:${viewer.id}`, REGRAS.importacao)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const titulo = extrairTituloDoArquivo(url);
     if (!titulo) {
@@ -228,6 +235,9 @@ export async function importarFotoDoWikimedia(
 ): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
+    if (!consumir(`importacao:${viewer.id}`, REGRAS.importacao)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const analise = importarWikimediaSchema.safeParse(entrada);
     if (!analise.success) {

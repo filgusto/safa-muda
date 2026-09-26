@@ -1,3 +1,4 @@
+import { padraoDeBusca } from "./padrao-de-busca.ts";
 import {
   and,
   or,
@@ -127,7 +128,7 @@ function montarCondicoes(filtros: FiltrosCatalogo): SQL | undefined {
   const condicoes: SQL[] = [];
 
   if (filtros.busca) {
-    const padrao = `%${filtros.busca}%`;
+    const padrao = padraoDeBusca(filtros.busca);
     const busca = or(
       ilike(species.nomeComum, padrao),
       ilike(species.nomeCientifico, padrao),

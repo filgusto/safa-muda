@@ -405,12 +405,16 @@ function idDeTaxonExterno({
 }
 
 async function idGbifExiste(id: number): Promise<boolean> {
-  const resposta = await fetch(`https://api.gbif.org/v1/species/${id}`);
+  const resposta = await fetch(`https://api.gbif.org/v1/species/${id}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   return resposta.ok;
 }
 
 async function idINaturalistExiste(id: number): Promise<boolean> {
-  const resposta = await fetch(`https://api.inaturalist.org/v1/taxa/${id}`);
+  const resposta = await fetch(`https://api.inaturalist.org/v1/taxa/${id}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!resposta.ok) return false;
   const dados = (await resposta.json()) as { results?: unknown[] };
   return Array.isArray(dados.results) && dados.results.length > 0;

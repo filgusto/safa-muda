@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db/index.ts";
 import { media } from "@/db/schema/index.ts";
 import { requireViewer, AccessError } from "@/lib/access.ts";
+import { consumir, MENSAGEM_DE_LIMITE, REGRAS } from "@/lib/limite-de-taxa.ts";
 import {
   ehTipoPermitido,
   gerarChave,
@@ -32,6 +33,10 @@ const corpoSchema = z.object({
 export async function POST(request: Request) {
   try {
     const viewer = await requireViewer();
+
+    if (!consumir(`upload:${viewer.id}`, REGRAS.upload)) {
+      return NextResponse.json({ error: MENSAGEM_DE_LIMITE }, { status: 429 });
+    }
 
     const resultado = corpoSchema.safeParse(await request.json());
     if (!resultado.success) {

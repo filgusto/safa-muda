@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { cadastrar as cadastrarComCodigo } from "./ajuda.ts";
 
 /**
  * O caminho completo: cadastro → projeto → plantio → diário.
@@ -7,27 +8,13 @@ import { test, expect, type Page } from "@playwright/test";
  * rota e derivação de planejado × realizado.
  */
 
-/** Conta nova a cada execução, para os testes não dependerem de estado prévio. */
-async function cadastrar(page: Page): Promise<string> {
-  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@safamuda.test`;
-
-  await page.goto("/cadastro");
-  await page.getByLabel("Nome").fill("Agrofloresteiro E2E");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill("senhaDeTeste123");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-
-  await expect(page).toHaveURL("/", { timeout: 15_000 });
-  return email;
-}
-
 test("projetos exigem login", async ({ page }) => {
   await page.goto("/projetos");
   await expect(page).toHaveURL(/\/entrar\?destino=\/projetos/);
 });
 
 test("cadastra, cria projeto e registra no diário", async ({ page }) => {
-  await cadastrar(page);
+  await cadastrarComCodigo(page, "Agrofloresteiro E2E");
 
   // ── Projeto ────────────────────────────────────────────────────────────
   await page.goto("/projetos/novo");
@@ -84,7 +71,7 @@ test("cadastra, cria projeto e registra no diário", async ({ page }) => {
 
 test("projeto de outra pessoa não é acessível", async ({ page, browser }) => {
   // Primeiro usuário cria o projeto.
-  await cadastrar(page);
+  await cadastrarComCodigo(page, "Agrofloresteiro E2E");
   await page.goto("/projetos/novo");
   await page.getByLabel("Nome do projeto").fill("Projeto privado");
   await page.getByRole("button", { name: "Criar projeto" }).click();
@@ -97,7 +84,7 @@ test("projeto de outra pessoa não é acessível", async ({ page, browser }) => 
   // Segundo usuário, sessão limpa, tenta abrir pela URL.
   const outroContexto = await browser.newContext();
   const outraPagina = await outroContexto.newPage();
-  await cadastrar(outraPagina);
+  await cadastrarComCodigo(outraPagina, "Outra Pessoa E2E");
 
   const resposta = await outraPagina.goto(url);
   expect(resposta?.status()).toBe(404);
