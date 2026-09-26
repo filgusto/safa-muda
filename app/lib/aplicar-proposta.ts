@@ -6,6 +6,7 @@ import {
   speciesRevision,
   notification,
 } from "@/db/schema/index.ts";
+import type { EstadoAnterior } from "@/core/procedencia.ts";
 import { gerarSlugUnico } from "./wiki.ts";
 import {
   CHAVE_FONTES_AUTOMATICAS,
@@ -53,6 +54,8 @@ export async function aplicarPropostaAprovada(
     const patch = camposAplicaveis(original);
     const fontesDoPatch = provenienciaDaProposta(original);
     let speciesId = proposta.speciesId;
+    // Como estavam os campos do patch, para a moderação poder desfazê-lo.
+    let antes: EstadoAnterior | null = null;
     let slug: string;
     let nomeDaEspecie: string;
 
@@ -92,6 +95,7 @@ export async function aplicarPropostaAprovada(
       // O nome pode ser justamente o que a proposta muda: o aviso usa o novo.
       nomeDaEspecie =
         typeof patch.nomeComum === "string" ? patch.nomeComum : atual.nomeComum;
+      antes = estadoAnterior(atual, Object.keys(patch));
 
       await tx
         .update(species)
@@ -114,8 +118,10 @@ export async function aplicarPropostaAprovada(
         speciesId: speciesId!,
         proposalId: proposta.id,
         patch,
+        antes,
         snapshot: depois as unknown as Record<string, unknown>,
         fonte: proposta.fonte,
+        localDaObservacao: proposta.localDaObservacao,
         autorId: proposta.autorId,
         revisorId,
       });
@@ -190,4 +196,19 @@ export function proveniencia(
   return Object.fromEntries(
     Object.keys(patch).map((chave) => [chaveDeFonte(chave), "comunidade"]),
   );
+}
+
+/** Valor e fonte, antes de uma edição, dos campos que ela vai tocar. */
+export function estadoAnterior(
+  atual: { fontes: Record<string, string> } & Record<string, unknown>,
+  campos: string[],
+): EstadoAnterior {
+  return {
+    valores: Object.fromEntries(
+      campos.map((campo) => [campo, atual[campo] ?? null]),
+    ),
+    fontes: Object.fromEntries(
+      campos.map((campo) => [campo, atual.fontes[chaveDeFonte(campo)] ?? null]),
+    ),
+  };
 }

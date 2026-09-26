@@ -45,6 +45,8 @@ export async function avisarAvaliacao({
       where: eq(user.id, autorId),
     });
     if (!autor) return;
+    // Quem desligou os avisos em /conta continua com a notificação interna.
+    if (!autor.avisoPorEmail) return;
 
     const endereco = slug
       ? `${process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000"}/safdex/${slug}`

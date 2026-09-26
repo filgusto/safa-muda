@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { Check, Loader2, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { validarEdicao } from "@/app/actions/wiki.ts";
+import { SeletorDeFonte } from "@/components/wiki/SeletorDeFonte.tsx";
+import {
+  LocalDaObservacao,
+  useLocalDaObservacao,
+} from "@/components/wiki/LocalDaObservacao.tsx";
 import { Secao } from "@/components/catalogo/Secao.tsx";
 import { useModoDeEdicao } from "@/components/wiki/ModoDeEdicao.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -44,6 +49,8 @@ export function ObservacoesEditaveis({
     desfazerAlteracao,
     ultimaFonte,
     lembrarFonte,
+    ultimoLocal,
+    lembrarLocal,
   } = useModoDeEdicao();
   const alteracao = alteracoes[CHAVE];
   /** A lista já aplicada ao rascunho, se houver; senão, a gravada. */
@@ -56,6 +63,10 @@ export function ObservacoesEditaveis({
   const [justificativa, setJustificativa] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const { local, definirLocal } = useLocalDaObservacao(
+    pendentes !== null,
+    alteracao ? alteracao.local : ultimoLocal,
+  );
 
   const lista = pendentes ?? aplicada;
 
@@ -92,6 +103,7 @@ export function ObservacoesEditaveis({
       slug,
       patch: { [CHAVE]: pendentes },
       fonte,
+      localDaObservacao: local || undefined,
       justificativa: justificativa.trim() || undefined,
     });
     setEnviando(false);
@@ -101,12 +113,14 @@ export function ObservacoesEditaveis({
     }
 
     lembrarFonte(fonte.trim());
+    lembrarLocal(local);
     aplicarAlteracao(CHAVE, {
       rotulo: ROTULO_DO_CAMPO,
       propostos: { [CHAVE]: pendentes },
       rascunho: { [CHAVE]: pendentes },
       gruposNovos: [],
       fonte: fonte.trim(),
+      local,
       justificativa: justificativa.trim(),
       resumo: resumir(notas, pendentes),
     });
@@ -219,20 +233,9 @@ export function ObservacoesEditaveis({
 
       {ativo && pendentes && (
         <form onSubmit={aplicar} className="mt-4 space-y-3">
-          <label className="block">
-            <span className={ROTULO}>
-              Fonte <span className="text-destructive">*</span>
-            </span>
-            <input
-              value={fonte}
-              onChange={(evento) => setFonte(evento.target.value)}
-              required
-              minLength={10}
-              maxLength={500}
-              placeholder="Observação de campo, livro e página, tabela, etc."
-              className={CAMPO}
-            />
-          </label>
+          <SeletorDeFonte valor={fonte} aoMudar={setFonte} />
+
+          <LocalDaObservacao valor={local} aoMudar={definirLocal} />
 
           <label className="block">
             <span className={ROTULO}>Observação</span>
@@ -452,4 +455,4 @@ const ROTULO =
   "mb-1 block font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground";
 
 const CAMPO =
-  "w-full rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  "w-full rounded-md border border-border bg-input px-3 py-1.5 text-base sm:text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";

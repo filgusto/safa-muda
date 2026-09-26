@@ -82,13 +82,13 @@ export function PainelDeLinkDoWikimedia({
             }
           }}
           placeholder="https://commons.wikimedia.org/wiki/File:..."
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="w-full rounded-md border border-border bg-input px-3 py-2 text-base sm:text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
         <button
           type="button"
           disabled={buscando || !url.trim()}
           onClick={() => void buscar()}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-foreground transition-colors duration-240 hover:bg-bg-surface2 disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-base sm:text-sm text-foreground transition-colors duration-240 hover:bg-bg-surface2 disabled:pointer-events-none disabled:opacity-50"
         >
           {buscando ? (
             <Loader2 size={14} className="animate-spin" />

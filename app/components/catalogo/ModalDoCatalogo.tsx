@@ -187,7 +187,7 @@ export function ModalDoCatalogo({
             evento.preventDefault();
             painel.current?.focus();
           }}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(48rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-bg-border bg-bg-surface1 shadow-2xl outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex h-dvh w-screen -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden bg-bg-surface1 outline-none sm:h-auto sm:max-h-[88dvh] sm:w-[min(48rem,calc(100vw-2rem))] sm:rounded-2xl sm:border sm:border-bg-border sm:shadow-2xl"
         >
           <Dialog.Title className="sr-only">{titulo}</Dialog.Title>
 

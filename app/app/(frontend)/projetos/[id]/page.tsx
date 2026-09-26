@@ -72,7 +72,7 @@ export default async function ProjetoPage({
   });
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col">
       <Workspace
         nome={projeto.nome}
         projectId={projeto.id}

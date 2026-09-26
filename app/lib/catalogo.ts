@@ -180,6 +180,8 @@ export interface FotoDaEspecie {
   alt: string | null;
   legenda: string | null;
   credito: string;
+  /** Ficha no Wikimedia Commons, quando a foto foi importada de lá. */
+  sourceUrl: string | null;
   tag: TagDeFoto;
   /** Escolhida pela administração para ilustrar o card e o cabeçalho. */
   principal: boolean;
@@ -225,6 +227,7 @@ async function fotosPrincipais(
       alt: media.alt,
       legenda: speciesFoto.legenda,
       credito: speciesFoto.credito,
+      sourceUrl: media.sourceUrl,
       tag: speciesFoto.tag,
       principal: speciesFoto.principal,
     })
@@ -302,6 +305,7 @@ export async function listarFotosDaEspecie(
       alt: media.alt,
       legenda: speciesFoto.legenda,
       credito: speciesFoto.credito,
+      sourceUrl: media.sourceUrl,
       tag: speciesFoto.tag,
       principal: speciesFoto.principal,
       aprovadaEm: speciesFoto.aprovadaEm,

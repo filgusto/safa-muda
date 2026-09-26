@@ -70,6 +70,22 @@ export const frutificacaoEnum = pgEnum("frutificacao", [
   "policarpica",
 ]);
 
+/** Mês do ano, para a época de frutificação — ver core/ciclo.ts. */
+export const mesEnum = pgEnum("mes", [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+]);
+
 /**
  * Forma de vida, no vocabulário da Flora e Funga do Brasil para angiospermas —
  * ver core/ciclo.ts.

@@ -9,6 +9,7 @@ function alteracao(
   propostos: Record<string, unknown>,
   fonte: string,
   justificativa = "",
+  local = "",
 ): AlteracaoDeCampo {
   return {
     rotulo,
@@ -16,6 +17,7 @@ function alteracao(
     rascunho: {},
     gruposNovos: [],
     fonte,
+    local,
     justificativa,
     resumo: "",
   };
@@ -59,5 +61,36 @@ describe("agruparPorFonte", () => {
     expect(proposta!.justificativa).toBe(
       "Estrato: Vi no campo\nFamília: Grafia nova",
     );
+  });
+
+  it("separa a mesma fonte quando o local da observação é outro", () => {
+    const livro = "Livro A, p. 1";
+    const propostas = agruparPorFonte([
+      alteracao("Estrato", { estrato: "alto" }, livro, "", "Piracicaba, SP"),
+      alteracao(
+        "Sucessão",
+        { sucessao: "climax" },
+        livro,
+        "",
+        "Piracicaba, SP",
+      ),
+      alteracao("Sistema", { sistema: "abundancia" }, livro, "", "BA"),
+    ]);
+    expect(propostas).toHaveLength(2);
+    expect(propostas.map((p) => p.localDaObservacao)).toEqual([
+      "Piracicaba, SP",
+      "BA",
+    ]);
+    expect(propostas[0]!.patch).toEqual({
+      estrato: "alto",
+      sucessao: "climax",
+    });
+  });
+
+  it("não manda local quando ele ficou em branco", () => {
+    const [proposta] = agruparPorFonte([
+      alteracao("Estrato", { estrato: "alto" }, "Livro A, p. 1", "", "  "),
+    ]);
+    expect(proposta!.localDaObservacao).toBeUndefined();
   });
 });

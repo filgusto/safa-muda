@@ -32,18 +32,26 @@ export type Codificador = (
   qualidade: number,
 ) => Promise<Blob>;
 
+function rotuloDoLimite(limite: number): string {
+  return limite >= 1024 * 1024
+    ? `${limite / (1024 * 1024)} MB`
+    : `${Math.round(limite / 1024)} KB`;
+}
+
 export class ImagemGrandeDemais extends Error {
-  constructor() {
+  constructor(limite = LIMITE_DE_UPLOAD_BYTES) {
     super(
-      "Não foi possível reduzir esta imagem para menos de 1 MB sem perder os detalhes. Tente outra foto.",
+      `Não foi possível reduzir esta imagem para menos de ${rotuloDoLimite(limite)} sem perder os detalhes. Tente outra foto.`,
     );
     this.name = "ImagemGrandeDemais";
   }
 }
 
 export class ArquivoGrandeDemais extends Error {
-  constructor() {
-    super("Este arquivo passa de 1 MB e não é uma imagem que dê para reduzir.");
+  constructor(limite = LIMITE_DE_UPLOAD_BYTES) {
+    super(
+      `Este arquivo passa de ${rotuloDoLimite(limite)} e não é uma imagem que dê para reduzir.`,
+    );
     this.name = "ArquivoGrandeDemais";
   }
 }
@@ -74,19 +82,23 @@ export async function buscarCodificacao(
     escala *= FATOR_DE_REDUCAO;
   }
 
-  throw new ImagemGrandeDemais();
+  throw new ImagemGrandeDemais(limite);
 }
 
 /**
- * Devolve um arquivo de até 1 MB pronto para envio. Se o original já cabe,
- * vai como está — recomprimir só perderia qualidade.
+ * Devolve um arquivo de até `limite` bytes (1 MB por padrão) pronto para
+ * envio. Se o original já cabe, vai como está — recomprimir só perderia
+ * qualidade.
  */
-export async function comprimirParaEnvio(arquivo: File): Promise<File> {
-  if (arquivo.size <= LIMITE_DE_UPLOAD_BYTES) return arquivo;
+export async function comprimirParaEnvio(
+  arquivo: File,
+  limite = LIMITE_DE_UPLOAD_BYTES,
+): Promise<File> {
+  if (arquivo.size <= limite) return arquivo;
   if (!arquivo.type.startsWith("image/")) {
     // Não deveria acontecer: a rota de upload só aceita imagem. Se um dia
     // aceitar outra coisa, é melhor falhar claro do que enviar 20 MB.
-    throw new ArquivoGrandeDemais();
+    throw new ArquivoGrandeDemais(limite);
   }
 
   // `from-image` aplica a rotação do EXIF: foto de celular em pé não sai
@@ -106,6 +118,7 @@ export async function comprimirParaEnvio(arquivo: File): Promise<File> {
       bitmap.height,
       (largura, altura, qualidade) =>
         desenharComoJpeg(bitmap, largura, altura, qualidade),
+      limite,
     );
 
     const nome = arquivo.name.replace(/\.[^.]+$/, "") || "foto";

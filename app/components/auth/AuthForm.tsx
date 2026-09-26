@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { signIn, signUp, emailOtp, mensagemDeErro } from "@/lib/auth-client.ts";
+import { VERSAO_DOS_TERMOS } from "@/lib/termos.ts";
+import { AceiteDosTermos } from "./AceiteDosTermos.tsx";
 
 type Modo = "entrar" | "cadastro";
 
@@ -12,6 +14,9 @@ function mensagemDeValidacao(input: HTMLInputElement): string | null {
   const validade = input.validity;
 
   if (validade.valid) return null;
+  if (validade.valueMissing && input.type === "checkbox") {
+    return "Aceite os Termos e a Política para criar a conta.";
+  }
   if (validade.valueMissing) return "Preencha este campo.";
   if (validade.typeMismatch && input.type === "email") {
     return "Informe um e-mail válido.";
@@ -89,6 +94,7 @@ export function AuthForm({ modo }: { modo: Modo }) {
             email,
             password,
             name: String(dados.get("name")),
+            termosVersao: VERSAO_DOS_TERMOS,
           })
         : await signIn.email({ email, password });
 
@@ -163,6 +169,10 @@ export function AuthForm({ modo }: { modo: Modo }) {
           minLength={8}
           erro={errosDeCampo["password-confirmation"]}
         />
+      )}
+
+      {modo === "cadastro" && (
+        <AceiteDosTermos id="termos" erro={errosDeCampo.termos} />
       )}
 
       {erro && (
@@ -329,7 +339,7 @@ function EtapaDeCodigo({
   );
 }
 
-function Campo({
+export function Campo({
   id,
   label,
   hint,
@@ -355,7 +365,7 @@ function Campo({
         aria-invalid={erro ? true : undefined}
         aria-describedby={erro ? `${id}-erro` : undefined}
         {...props}
-        className={`w-full rounded-md border bg-input px-3 py-2 text-sm text-foreground transition-colors duration-240 focus-visible:outline-none focus-visible:ring-1 ${
+        className={`w-full rounded-md border bg-input px-3 py-2 text-base sm:text-sm text-foreground transition-colors duration-240 focus-visible:outline-none focus-visible:ring-1 ${
           erro
             ? "border-red-500/50 focus-visible:border-red-500 focus-visible:ring-red-500/50"
             : "border-border focus-visible:border-primary focus-visible:ring-ring"

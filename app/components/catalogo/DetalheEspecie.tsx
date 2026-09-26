@@ -1,4 +1,5 @@
 import { Secao } from "@/components/catalogo/Secao.tsx";
+import { FontesDaComunidade } from "@/components/catalogo/FontesDaComunidade.tsx";
 import { HistoricoDaEspecie } from "@/components/catalogo/HistoricoDaEspecie.tsx";
 import {
   BotaoDeEdicao,
@@ -26,6 +27,7 @@ import {
   FRUTIFICACAO_LABEL,
   HABITO_LABEL,
   formatarLongevidade,
+  formatarMeses,
   inconsistenciasDoCiclo,
 } from "@/core/ciclo.ts";
 import {
@@ -226,10 +228,10 @@ export function DetalheEspecie({
         info={
           <>
             Como a planta vive: o ciclo biológico (anual, bienal, perene) — não
-            o de cultivo —, se frutifica uma vez só e morre (monocárpica), a
-            forma de vida, quanto vive depois de adulta, a altura que alcança e
-            quando começa a produzir. Um aviso em amarelo aparece quando os
-            valores informados se contradizem.
+            o de cultivo —, quanto vive depois de adulta, se frutifica uma vez
+            só e morre (monocárpica), quando começa a produzir, a época de
+            frutificação, a forma de vida e a altura que alcança. Um aviso em
+            amarelo aparece quando os valores informados se contradizem.
           </>
         }
       >
@@ -237,6 +239,14 @@ export function DetalheEspecie({
           {...editavel(especie, "cicloDeVida")}
           rotulo="Ciclo de vida"
           valor={lista(especie.cicloDeVida.map((c) => CICLO_DE_VIDA_LABEL[c]))}
+        />
+        <CampoEditavel
+          {...editavel(especie, "longevidadeMinAnos", "longevidadeMaxAnos")}
+          rotulo="Longevidade"
+          valor={formatarLongevidade(
+            especie.longevidadeMinAnos,
+            especie.longevidadeMaxAnos,
+          )}
         />
         <CampoEditavel
           {...editavel(especie, "frutificacao")}
@@ -248,17 +258,23 @@ export function DetalheEspecie({
           }
         />
         <CampoEditavel
+          {...editavel(especie, "produtivaAPartirDeMeses")}
+          rotulo="Produz a partir de"
+          valor={
+            especie.produtivaAPartirDeMeses !== null
+              ? `${especie.produtivaAPartirDeMeses} meses`
+              : null
+          }
+        />
+        <CampoEditavel
+          {...editavel(especie, "mesesDeFrutificacao")}
+          rotulo="Meses de frutificação"
+          valor={formatarMeses(especie.mesesDeFrutificacao)}
+        />
+        <CampoEditavel
           {...editavel(especie, "habito")}
           rotulo="Hábito"
           valor={lista(especie.habito.map((h) => HABITO_LABEL[h]))}
-        />
-        <CampoEditavel
-          {...editavel(especie, "longevidadeMinAnos", "longevidadeMaxAnos")}
-          rotulo="Longevidade"
-          valor={formatarLongevidade(
-            especie.longevidadeMinAnos,
-            especie.longevidadeMaxAnos,
-          )}
         />
         <CampoEditavel
           {...editavel(especie, "alturaMaduraM")}
@@ -266,15 +282,6 @@ export function DetalheEspecie({
           valor={
             especie.alturaMaduraM !== null
               ? `${formatar(especie.alturaMaduraM)} m`
-              : null
-          }
-        />
-        <CampoEditavel
-          {...editavel(especie, "produtivaAPartirDeMeses")}
-          rotulo="Produz a partir de"
-          valor={
-            especie.produtivaAPartirDeMeses !== null
-              ? `${especie.produtivaAPartirDeMeses} meses`
               : null
           }
         />
@@ -370,15 +377,22 @@ export function DetalheEspecie({
           <>
             De onde vêm os valores desta ficha. Nenhum campo é preenchido por
             estimativa: quando a fonte não informa, ele fica como &ldquo;não
-            informado&rdquo;. &ldquo;Contribuição da comunidade&rdquo; marca os
-            campos corrigidos por sugestões aprovadas pela equipe.
+            informado&rdquo;. As contribuições da comunidade aparecem com a
+            fonte que a pessoa declarou e o nome com que escolheu ser citada,
+            depois de aprovadas pela equipe; passe o mouse sobre o nome para ver
+            o que ela tornou público.
           </>
         }
       >
         <ul className="space-y-1.5 text-sm text-muted-foreground">
-          {[...new Set(Object.values(especie.fontes))].map((fonte) => (
-            <li key={fonte}>{FONTE_LABEL[fonte] ?? fonte}</li>
-          ))}
+          {[...new Set(Object.values(especie.fontes))]
+            // As contribuições da comunidade entram abaixo, uma a uma, com a
+            // fonte que cada pessoa declarou.
+            .filter((fonte) => fonte !== "comunidade")
+            .map((fonte) => (
+              <li key={fonte}>{FONTE_LABEL[fonte] ?? fonte}</li>
+            ))}
+          <FontesDaComunidade speciesId={especie.id} />
         </ul>
       </Secao>
 

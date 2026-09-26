@@ -15,6 +15,8 @@ import {
   FRUTIFICACAO_LABEL,
   HABITOS,
   HABITO_LABEL,
+  MESES,
+  MES_LABEL,
 } from "@/core/ciclo.ts";
 import {
   REBROTAS,
@@ -201,6 +203,15 @@ export const CAMPOS: DefinicaoDeCampo[] = [
     grupo: "porte",
     ajuda:
       "Monocárpica: frutifica uma vez e aquela planta (ou haste, como na bananeira) morre.",
+  },
+  {
+    chave: "mesesDeFrutificacao",
+    rotulo: "Meses de frutificação",
+    tipo: "multi_enum",
+    opcoes: opcoes(MESES, MES_LABEL),
+    grupo: "porte",
+    ajuda:
+      "Meses em que a planta dá fruto, segundo a fonte. Varia com a região e o clima: cite a região na fonte.",
   },
   {
     chave: "habito",
@@ -458,6 +469,7 @@ export const camposDaEspecieSchema = z.object({
     .max(CICLOS_DE_VIDA.length)
     .optional(),
   frutificacao: z.enum(FRUTIFICACOES).nullable().optional(),
+  mesesDeFrutificacao: z.array(z.enum(MESES)).max(MESES.length).optional(),
   habito: z.array(z.enum(HABITOS)).max(HABITOS.length).optional(),
   longevidadeMinAnos: numeroOpcional.optional(),
   longevidadeMaxAnos: numeroOpcional.optional(),
@@ -483,10 +495,18 @@ const fonteSchema = z
   .min(10, "Descreva a fonte com pelo menos 10 caracteres.")
   .max(500);
 
+/**
+ * Onde a observação foi feita. Aqui só o formato e o tamanho: conferir contra
+ * o IBGE precisa de rede e fica na ação de servidor (`validarLocal`), para este
+ * módulo continuar servindo também ao cliente.
+ */
+const localDaObservacaoSchema = z.string().trim().max(120).optional();
+
 export const propostaDeEdicaoSchema = z.object({
   slug: z.string().min(1),
   patch: camposDaEspecieSchema,
   fonte: fonteSchema,
+  localDaObservacao: localDaObservacaoSchema,
   justificativa: z.string().trim().max(2000).optional(),
 });
 
@@ -496,6 +516,7 @@ export const propostaDeNovaEspecieSchema = z.object({
     nomeCientifico: true,
   }),
   fonte: fonteSchema,
+  localDaObservacao: localDaObservacaoSchema,
   justificativa: z.string().trim().max(2000).optional(),
 });
 

@@ -6,6 +6,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   Pencil,
   Star,
   Trash2,
@@ -33,6 +34,14 @@ import {
   CURVA,
   CURVA_SAIDA,
 } from "@/components/catalogo/percursoDoModal.ts";
+
+function ehDoCommons(url: string): boolean {
+  try {
+    return new URL(url).hostname === "commons.wikimedia.org";
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Galeria da ficha: uma faixa horizontal, na ordem do desenvolvimento da planta
@@ -316,7 +325,7 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
           <Dialog.Content
             ref={animarEntrada}
             aria-describedby={undefined}
-            className="fixed left-1/2 top-1/2 z-[60] flex h-[94vh] w-[96vw] -translate-x-1/2 -translate-y-1/2 flex-col"
+            className="fixed left-1/2 top-1/2 z-[60] flex h-[94dvh] w-[96vw] -translate-x-1/2 -translate-y-1/2 flex-col"
           >
             <Dialog.Title className="sr-only">
               {foco?.legenda ?? foco?.alt ?? "Foto da espécie"}
@@ -342,6 +351,17 @@ export function CarrosselDeFotos({ fotos }: { fotos: FotoDaEspecie[] }) {
                   <span className="font-mono text-[0.65rem] text-muted-foreground/70">
                     {foco.credito}
                   </span>
+                  {foco.sourceUrl && ehDoCommons(foco.sourceUrl) && (
+                    <a
+                      href={foco.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-primary underline-offset-2 hover:underline"
+                    >
+                      Ver no Wikimedia Commons
+                      <ExternalLink size={11} />
+                    </a>
+                  )}
                 </div>
               </>
             )}

@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index.ts";
-import { species, changeProposal, notification } from "@/db/schema/index.ts";
+import {
+  species,
+  changeProposal,
+  notification,
+  user,
+} from "@/db/schema/index.ts";
 import { requireViewer, requireModerator, AccessError } from "@/lib/access.ts";
 import {
   propostaDeEdicaoSchema,
@@ -16,8 +21,14 @@ import {
   aplicarPropostaAprovada,
   chaveDeFonte,
 } from "@/lib/aplicar-proposta.ts";
+import { excluirContribuicao as excluirRevisao } from "@/lib/excluir-contribuicao.ts";
 import { avisarAvaliacao } from "@/lib/aviso-de-avaliacao.ts";
 import { listarRevisoesDaEspecie } from "@/lib/wiki.ts";
+import { validarLocal } from "@/lib/ibge.ts";
+import {
+  listarFontesDaComunidade as consultarFontesDaComunidade,
+  type FonteDaComunidade,
+} from "@/lib/fontes-da-comunidade.ts";
 import { buscarGbifId, buscarINaturalistId } from "@/lib/links-externos.ts";
 import {
   buscarHabitoECiclo,
@@ -68,6 +79,68 @@ export async function listarHistorico(
   }
 }
 
+/**
+ * Exclui uma contribuição aprovada: o campo volta ao que era, e o autor deixa
+ * de constar nas Fontes da ficha (se nada mais dele a sustenta) e no histórico
+ * do próprio perfil. A proposta original continua como "aprovada" — é o
+ * registro do que a pessoa sugeriu; o que sai é o efeito dela na ficha.
+ */
+export async function excluirContribuicao(
+  revisaoId: string,
+): Promise<Resultado> {
+  try {
+    await requireModerator();
+    if (!z.string().uuid().safeParse(revisaoId).success) {
+      return { ok: false, erro: "Contribuição inválida." };
+    }
+
+    const resultado = await excluirRevisao(revisaoId);
+    if (!resultado.ok) return { ok: false, erro: resultado.erro };
+
+    revalidatePath("/safdex");
+    revalidatePath(`/safdex/${resultado.slug}`);
+    return { ok: true, mensagem: "Contribuição excluída." };
+  } catch (erro) {
+    return tratar(erro);
+  }
+}
+
+/**
+ * Fontes das contribuições da comunidade, para a seção Fontes. Público de
+ * propósito, mas lido a cada chamada — e não embutido na ficha (ISR) — para que
+ * quem passar a ser "sem identificação", ou apagar a conta, deixe de aparecer
+ * na hora.
+ */
+export async function listarFontesDaComunidade(
+  speciesId: string,
+): Promise<FonteDaComunidade[]> {
+  if (!z.string().uuid().safeParse(speciesId).success) return [];
+  try {
+    return await consultarFontesDaComunidade(speciesId);
+  } catch (erro) {
+    console.error("Falha ao listar as fontes da comunidade:", erro);
+    return [];
+  }
+}
+
+/**
+ * A região do perfil de quem está logado, para pré-preencher o local da
+ * observação. Vem por ação porque a ficha é ISR e a sessão do navegador não
+ * carrega o perfil. Sem login ou sem região, `null`.
+ */
+export async function minhaRegiao(): Promise<string | null> {
+  try {
+    const viewer = await requireViewer();
+    const linha = await db.query.user.findFirst({
+      where: eq(user.id, viewer.id),
+      columns: { regiao: true },
+    });
+    return linha?.regiao ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Cria uma proposta de edição sobre uma espécie existente. */
 export async function proporEdicao(entrada: unknown): Promise<Resultado> {
   try {
@@ -77,7 +150,16 @@ export async function proporEdicao(entrada: unknown): Promise<Resultado> {
     if (!analise.success) {
       return { ok: false, erro: primeiroErro(analise.error) };
     }
-    const { slug, patch: propostos, fonte, justificativa } = analise.data;
+    const {
+      slug,
+      patch: propostos,
+      fonte,
+      localDaObservacao,
+      justificativa,
+    } = analise.data;
+
+    const local = await validarLocal(localDaObservacao);
+    if (!local.ok) return { ok: false, erro: local.erro };
 
     const especie = await db.query.species.findFirst({
       where: eq(species.slug, slug),
@@ -99,6 +181,7 @@ export async function proporEdicao(entrada: unknown): Promise<Resultado> {
       speciesId: especie.id,
       patch,
       fonte,
+      localDaObservacao: local.valor,
       justificativa,
       autorId: viewer.id,
     });
@@ -128,7 +211,10 @@ export async function validarEdicao(entrada: unknown): Promise<Resultado> {
     if (!analise.success) {
       return { ok: false, erro: primeiroErro(analise.error) };
     }
-    const { slug, patch: propostos } = analise.data;
+    const { slug, patch: propostos, localDaObservacao } = analise.data;
+
+    const local = await validarLocal(localDaObservacao);
+    if (!local.ok) return { ok: false, erro: local.erro };
 
     const especie = await db.query.species.findFirst({
       where: eq(species.slug, slug),
@@ -184,7 +270,15 @@ export async function proporEdicoesEmLote(
       if (!analise.success) {
         return { ok: false, erro: primeiroErro(analise.error) };
       }
-      const { patch: propostos, fonte, justificativa } = analise.data;
+      const {
+        patch: propostos,
+        fonte,
+        localDaObservacao,
+        justificativa,
+      } = analise.data;
+
+      const local = await validarLocal(localDaObservacao);
+      if (!local.ok) return { ok: false, erro: local.erro };
 
       const patch = calcularPatch(
         especie as unknown as Record<string, unknown>,
@@ -197,6 +291,7 @@ export async function proporEdicoesEmLote(
         speciesId: especie.id,
         patch,
         fonte,
+        localDaObservacao: local.valor,
         justificativa,
         autorId: viewer.id,
       });
@@ -223,7 +318,10 @@ export async function proporNovaEspecie(entrada: unknown): Promise<Resultado> {
     if (!analise.success) {
       return { ok: false, erro: primeiroErro(analise.error) };
     }
-    const { campos, fonte, justificativa } = analise.data;
+    const { campos, fonte, localDaObservacao, justificativa } = analise.data;
+
+    const local = await validarLocal(localDaObservacao);
+    if (!local.ok) return { ok: false, erro: local.erro };
 
     const [proposta] = await db
       .insert(changeProposal)
@@ -232,6 +330,7 @@ export async function proporNovaEspecie(entrada: unknown): Promise<Resultado> {
         speciesId: null,
         patch: campos,
         fonte,
+        localDaObservacao: local.valor,
         justificativa,
         autorId: viewer.id,
       })

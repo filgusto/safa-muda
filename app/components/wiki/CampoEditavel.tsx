@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Pencil, Plus, RotateCcw, X } from "lucide-react";
 import { validarEdicao } from "@/app/actions/wiki.ts";
+import { SeletorDeFonte } from "@/components/wiki/SeletorDeFonte.tsx";
+import {
+  LocalDaObservacao,
+  useLocalDaObservacao,
+} from "@/components/wiki/LocalDaObservacao.tsx";
 import {
   CAMPOS_POR_CHAVE,
   CHAVE_GRUPOS_PROPOSTOS,
@@ -256,6 +261,8 @@ function Editor({
   const {
     ultimaFonte,
     lembrarFonte,
+    ultimoLocal,
+    lembrarLocal,
     alteracoes,
     aplicarAlteracao,
     desfazerAlteracao,
@@ -281,6 +288,10 @@ function Editor({
   const [fonte, setFonte] = useState(anterior?.fonte ?? ultimaFonte);
   const [justificativa, setJustificativa] = useState(
     anterior?.justificativa ?? "",
+  );
+  const { local, definirLocal } = useLocalDaObservacao(
+    true,
+    anterior ? anterior.local : ultimoLocal,
   );
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -366,6 +377,7 @@ function Editor({
       slug,
       patch,
       fonte,
+      localDaObservacao: local || undefined,
       justificativa: justificativa.trim() || undefined,
     });
     setEnviando(false);
@@ -376,12 +388,14 @@ function Editor({
     }
 
     lembrarFonte(fonte.trim());
+    lembrarLocal(local);
     aplicarAlteracao(id, {
       rotulo,
       propostos: patch,
       rascunho,
       gruposNovos,
       fonte: fonte.trim(),
+      local,
       justificativa: justificativa.trim(),
       resumo: resumir(definicoes, propostos, gruposNovos),
     });
@@ -416,20 +430,9 @@ function Editor({
         </p>
       )}
 
-      <label className="block">
-        <span className={ROTULO}>
-          Fonte <span className="text-destructive">*</span>
-        </span>
-        <input
-          value={fonte}
-          onChange={(evento) => setFonte(evento.target.value)}
-          required
-          minLength={10}
-          maxLength={500}
-          placeholder="Observação de campo, livro e página, tabela, etc."
-          className={CAMPO}
-        />
-      </label>
+      <SeletorDeFonte valor={fonte} aoMudar={setFonte} />
+
+      <LocalDaObservacao valor={local} aoMudar={definirLocal} />
 
       <label className="block">
         <span className={ROTULO}>Observação</span>
@@ -577,6 +580,14 @@ function Controle({
   }
 }
 
+/** Só dígitos e uma vírgula, com no máximo uma casa decimal ("." vira ","). */
+function umaCasaDecimal(texto: string): string {
+  const limpo = texto.replace(/\./g, ",").replace(/[^\d,]/g, "");
+  const [inteiro = "", ...resto] = limpo.split(",");
+  if (resto.length === 0) return inteiro;
+  return `${inteiro},${resto.join("").slice(0, 1)}`;
+}
+
 /**
  * Texto com teclado numérico, e não `type="number"`: este aceita ou recusa a
  * vírgula decimal conforme o idioma do navegador, e "2,5" é o que se digita.
@@ -592,10 +603,16 @@ function EntradaNumerica({
   definir: (chave: string, valor: string) => void;
   placeholder?: string;
 }) {
+  const emMetros = def.unidade === "m";
   return (
     <input
       value={valor}
-      onChange={(evento) => definir(def.chave, evento.target.value)}
+      onChange={(evento) =>
+        definir(
+          def.chave,
+          emMetros ? umaCasaDecimal(evento.target.value) : evento.target.value,
+        )
+      }
       inputMode="decimal"
       aria-label={def.rotulo}
       placeholder={placeholder}
@@ -848,4 +865,4 @@ const ROTULO =
   "mb-1 block font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground";
 
 const CAMPO =
-  "w-full rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  "w-full rounded-md border border-border bg-input px-3 py-1.5 text-base sm:text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";

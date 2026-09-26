@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, HelpCircle } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
 import {
   CAMPOS,
   ROTULO_DO_GRUPO,
@@ -10,6 +15,12 @@ import {
   type DefinicaoDeCampo,
 } from "@/lib/especie-schema.ts";
 import { proporEdicao, proporNovaEspecie } from "@/app/actions/wiki.ts";
+import { GUIA_DOS_CAMPOS } from "@/lib/guia-dos-campos.ts";
+import { SeletorDeFonte } from "@/components/wiki/SeletorDeFonte.tsx";
+import {
+  LocalDaObservacao,
+  useLocalDaObservacao,
+} from "@/components/wiki/LocalDaObservacao.tsx";
 
 type Valores = Record<string, unknown>;
 
@@ -43,6 +54,7 @@ export function FormularioEspecie({
   const [valores, setValores] = useState<Valores>(iniciais);
   const [fonte, setFonte] = useState("");
   const [justificativa, setJustificativa] = useState("");
+  const { local, definirLocal } = useLocalDaObservacao(true);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -71,8 +83,19 @@ export function FormularioEspecie({
 
     const resultado =
       modo === "edicao"
-        ? await proporEdicao({ slug, patch: valores, fonte, justificativa })
-        : await proporNovaEspecie({ campos: valores, fonte, justificativa });
+        ? await proporEdicao({
+            slug,
+            patch: valores,
+            fonte,
+            localDaObservacao: local || undefined,
+            justificativa,
+          })
+        : await proporNovaEspecie({
+            campos: valores,
+            fonte,
+            localDaObservacao: local || undefined,
+            justificativa,
+          });
 
     setEnviando(false);
 
@@ -86,6 +109,14 @@ export function FormularioEspecie({
       if (aoConcluir) aoConcluir();
       else router.push(slug ? `/safdex/${slug}` : "/safdex");
     }, 1600);
+  }
+
+  function descartar() {
+    if (preenchido && !window.confirm("Descartar o que você preencheu?")) {
+      return;
+    }
+    if (aoConcluir) aoConcluir();
+    else router.push(slug ? `/safdex/${slug}` : "/safdex");
   }
 
   if (sucesso) {
@@ -123,27 +154,12 @@ export function FormularioEspecie({
       ))}
 
       <section className="rounded-xl border border-primary/25 bg-primary/5 p-5">
-        <h2 className="mb-2 font-mono text-xs uppercase tracking-widest text-primary">
-          Fonte <span className="text-destructive">*</span>
-        </h2>
-        <p className="mb-4 flex gap-2 text-sm leading-[1.7] text-muted-foreground">
-          <Info size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <span>
-            De onde vem este dado? Observaçao de campo (por gentileza, diga sua
-            região e condições de plantio), livro e página, artigo, publicação
-            de instituição, ou observação de campo, etc. Sem fonte a sugestão
-            não pode ser avaliada — se o dado não existe na literatura, o campo
-            deve ficar vazio, não estimado.
-          </span>
-        </p>
-        <textarea
-          value={fonte}
-          onChange={(evento) => setFonte(evento.target.value)}
-          required
-          minLength={10}
-          rows={3}
-          placeholder="Ex.: Lorenzi, Árvores Brasileiras vol. 1, p. 142"
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        <SeletorDeFonte valor={fonte} aoMudar={setFonte} />
+
+        <LocalDaObservacao
+          valor={local}
+          aoMudar={definirLocal}
+          className="mt-4"
         />
 
         <label className="mt-4 block">
@@ -154,7 +170,7 @@ export function FormularioEspecie({
             value={justificativa}
             onChange={(evento) => setJustificativa(evento.target.value)}
             rows={2}
-            className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full rounded-md border border-border bg-input px-3 py-2 text-base sm:text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </label>
       </section>
@@ -168,14 +184,24 @@ export function FormularioEspecie({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={enviando}
-        className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
-      >
-        {enviando && <Loader2 size={16} className="mr-2 animate-spin" />}
-        Enviar sugestão
-      </button>
+      <div className="flex flex-wrap justify-center gap-3">
+        <button
+          type="submit"
+          disabled={enviando}
+          className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        >
+          {enviando && <Loader2 size={16} className="mr-2 animate-spin" />}
+          Enviar sugestão
+        </button>
+        <button
+          type="button"
+          onClick={descartar}
+          disabled={enviando}
+          className="inline-flex items-center justify-center rounded-md border border-red-600/80 bg-transparent px-8 py-2.5 text-sm font-medium text-red-600/80 transition-all duration-240 hover:bg-red-500/10 hover:text-red-600 active:scale-[0.98] dark:border-red-300/80 dark:text-red-300/80 dark:hover:text-red-300 disabled:pointer-events-none disabled:opacity-50"
+        >
+          Descartar sugestão
+        </button>
+      </div>
     </form>
   );
 }
@@ -193,18 +219,21 @@ function Campo({
 }) {
   const id = `campo-${campo.chave}`;
   const classe =
-    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+    "w-full rounded-md border border-border bg-input px-3 py-2 text-base sm:text-sm text-foreground transition-colors duration-240 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-muted-foreground"
-      >
-        {campo.rotulo}
-        {campo.unidade && ` (${campo.unidade})`}
-        {obrigatorio && <span className="ml-1 text-destructive">*</span>}
-      </label>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label
+          htmlFor={id}
+          className="block font-mono text-xs uppercase tracking-wider text-muted-foreground"
+        >
+          {campo.rotulo}
+          {campo.unidade && ` (${campo.unidade})`}
+          {obrigatorio && <span className="ml-1 text-destructive">*</span>}
+        </label>
+        <AjudaDoCampo campo={campo} />
+      </div>
 
       {campo.tipo === "texto" && (
         <input
@@ -221,7 +250,7 @@ function Campo({
         <input
           id={id}
           type="number"
-          step="any"
+          step={campo.unidade === "m" ? "0.1" : "any"}
           min="0"
           value={valor === null || valor === undefined ? "" : String(valor)}
           onChange={(evento) =>
@@ -300,5 +329,44 @@ function Campo({
         <p className="mt-1 text-xs text-muted-foreground">{campo.ajuda}</p>
       )}
     </div>
+  );
+}
+
+/** Botão "?" que explica o campo e como preenchê-lo. */
+function AjudaDoCampo({ campo }: { campo: DefinicaoDeCampo }) {
+  const guia = GUIA_DOS_CAMPOS[campo.chave];
+  if (!guia) return null;
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        type="button"
+        aria-label={`Ajuda: ${campo.rotulo}`}
+        className="rounded-full text-muted-foreground transition-colors duration-240 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <HelpCircle size={15} />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-80 space-y-2 text-sm leading-[1.6]"
+      >
+        <p className="font-medium">{campo.rotulo}</p>
+        <p className="text-muted-foreground">{guia.oQue}</p>
+        <p>
+          <span className="font-medium">Como preencher: </span>
+          <span className="text-muted-foreground">{guia.como}</span>
+        </p>
+        {guia.dicas && (
+          <>
+            <p className="font-medium">Como descobrir</p>
+            <ul className="list-disc space-y-1.5 pl-4 text-muted-foreground">
+              {guia.dicas.map((dica) => (
+                <li key={dica}>{dica}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
