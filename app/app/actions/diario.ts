@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/index.ts";
 import {
   event,
   eventMedia,
+  media,
   plantIndividual,
   planting,
   area,
@@ -94,6 +95,21 @@ export async function registrarEvento(
         ),
       });
       if (!alvo) return { ok: false, erro: "Área não encontrada." };
+    }
+
+    // Só mídia enviada pela própria pessoa: um `mediaId` alheio não pode ser
+    // anexado a um evento (e sumir junto com ele).
+    const idsDeMidia = [...new Set(dados.mediaIds ?? [])];
+    if (idsDeMidia.length) {
+      const proprias = await db
+        .select({ id: media.id })
+        .from(media)
+        .where(
+          and(inArray(media.id, idsDeMidia), eq(media.uploadedBy, viewer.id)),
+        );
+      if (proprias.length !== idsDeMidia.length) {
+        return { ok: false, erro: "Imagem não encontrada." };
+      }
     }
 
     let individualId: string | null = null;

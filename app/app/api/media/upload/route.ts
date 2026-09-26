@@ -6,7 +6,7 @@ import { requireViewer, AccessError } from "@/lib/access.ts";
 import {
   ehTipoPermitido,
   gerarChave,
-  urlDeUpload,
+  postDeUpload,
   urlPublica,
   TAMANHO_MAXIMO_BYTES,
   TIPOS_PERMITIDOS,
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const { filename, contentType, size, alt } = resultado.data;
-    const key = gerarChave(filename);
+    const key = gerarChave(contentType);
 
     const [registro] = await db
       .insert(media)
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       mediaId: registro!.id,
-      uploadUrl: await urlDeUpload({ key, contentType }),
+      upload: await postDeUpload({ key, contentType }),
       publicUrl: urlPublica(key),
     });
   } catch (error) {

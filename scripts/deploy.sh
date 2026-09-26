@@ -53,7 +53,7 @@ docker compose version &>/dev/null || fail "Docker Compose plugin is not install
 
 # Validate required vars exist and have no placeholder values
 for var in NEXT_PUBLIC_SERVER_URL AUTH_SECRET POSTGRES_PASSWORD S3_PUBLIC_DOMAIN \
-           MINIO_ROOT_USER MINIO_ROOT_PASSWORD TRAEFIK_DOMAIN TRAEFIK_ACME_EMAIL; do
+           MINIO_ROOT_USER MINIO_ROOT_PASSWORD MINIO_APP_USER MINIO_APP_PASSWORD TRAEFIK_DOMAIN TRAEFIK_ACME_EMAIL; do
     val="$(get_env "$var")"
     [[ -n "$val" ]]               || fail "$var is not set in .env.prod"
     [[ "$val" != *"CHANGE_ME"* ]] || fail "$var still has a placeholder value — set a real value in .env.prod"
