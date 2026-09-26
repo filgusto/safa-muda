@@ -174,7 +174,14 @@ E2E_BASE_URL=http://localhost:3000 npm run e2e
 2. `cp .env.prod.example .env.prod` e preencha todos os `CHANGE_ME_*`.
 3. Primeiro deploy: `./scripts/deploy.sh`
 4. Atualizações: `./scripts/update-app-in-server.sh`
-5. Backups: agende `./scripts/backup-db.sh` no cron.
+5. Backups: agende `./scripts/backup-db.sh` no cron. Ele gera um dump do
+   Postgres (`safa_muda_*.dump`) e espelha as fotos do MinIO em
+   `$BACKUP_DIR/media`; defina `RCLONE_REMOTE` para copiar tudo para fora do
+   servidor. O `update-app-in-server.sh` roda o backup antes de migrar.
+   **Restore:** `docker compose -f docker-compose.prod.yml exec -T postgres
+   pg_restore -U safa_muda -d safa_muda --clean --if-exists < arquivo.dump`;
+   fotos: `mc mirror` do diretório `media` de volta ao bucket. Teste o restore
+   antes de depender dele.
 
 > `S3_PUBLIC_DOMAIN` é necessário porque o upload é feito pelo navegador direto
 > no MinIO, via URL pré-assinada — e a assinatura SigV4 cobre o cabeçalho Host.

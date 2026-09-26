@@ -56,25 +56,30 @@ git checkout "$BRANCH"
 git pull origin "$BRANCH"
 log "Now at commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
 
-# ── Step 2: Validate migration index consistency ──────────────────────────────
-step "Validating migration index consistency"
-MIGRATIONS_DIR="$REPO_DIR/app/migrations"
-INDEX_FILE="$MIGRATIONS_DIR/index.ts"
+# ── Step 2: Validate migration journal consistency ────────────────────────────
+step "Validating migration journal consistency"
+MIGRATIONS_DIR="$REPO_DIR/app/db/migrations"
+JOURNAL="$MIGRATIONS_DIR/meta/_journal.json"
+[[ -f "$JOURNAL" ]] || fail "Journal not found: $JOURNAL"
 idx_errors=0
 
-for f in "$MIGRATIONS_DIR"/[0-9]*.ts; do
-    name="$(basename "$f" .ts)"
-    grep -q "from './$name'" "$INDEX_FILE" \
-        || { log "ERROR: $name.ts exists but is not referenced in migrations/index.ts"; idx_errors=$((idx_errors + 1)); }
+for f in "$MIGRATIONS_DIR"/[0-9]*.sql; do
+    name="$(basename "$f" .sql)"
+    grep -q "\"tag\": \"$name\"" "$JOURNAL" \
+        || { log "ERROR: $name.sql exists but is not in meta/_journal.json"; idx_errors=$((idx_errors + 1)); }
 done
 
 while IFS= read -r name; do
-    [[ -f "$MIGRATIONS_DIR/$name.ts" ]] \
-        || { log "ERROR: migrations/index.ts references '$name' but the file does not exist"; idx_errors=$((idx_errors + 1)); }
-done < <(grep -oP "from '\./\K[^']+" "$INDEX_FILE")
+    [[ -f "$MIGRATIONS_DIR/$name.sql" ]] \
+        || { log "ERROR: journal references '$name' but the .sql file does not exist"; idx_errors=$((idx_errors + 1)); }
+done < <(sed -n 's/.*"tag": "\([^"]*\)".*/\1/p' "$JOURNAL")
 
-[[ $idx_errors -eq 0 ]] || fail "Migration index is inconsistent. Fix app/migrations/index.ts before deploying."
-log "Migration index OK."
+[[ $idx_errors -eq 0 ]] || fail "Migration journal is inconsistent. Run 'npm run db:generate' before deploying."
+log "Migration journal OK."
+
+# ── Step 2b: Backup before migrating ──────────────────────────────────────────
+step "Backing up the database before migrating"
+"$REPO_DIR/scripts/backup-db.sh"
 
 # ── Step 3: Build updated images ─────────────────────────────────────────────
 step "Building updated application images"

@@ -17,8 +17,8 @@ services:
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER no .env.prod}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD no .env.prod}
     volumes:
       - safa-muda-minio-data:/data
     networks:
@@ -37,7 +37,7 @@ services:
       # Aponte S3_PUBLIC_DOMAIN (ex.: s3.seudominio.org) para este servidor.
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-net"
-      - "traefik.http.routers.safa-muda-s3.rule=Host(`${S3_PUBLIC_DOMAIN}`)"
+      - "traefik.http.routers.safa-muda-s3.rule=Host(`${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}`)"
       - "traefik.http.routers.safa-muda-s3.entrypoints=websecure"
       - "traefik.http.routers.safa-muda-s3.tls=true"
       - "traefik.http.routers.safa-muda-s3.tls.certresolver=letsencrypt"
@@ -62,8 +62,8 @@ services:
     networks:
       - safa-muda-net
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER no .env.prod}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD no .env.prod}
     entrypoint:
       - /bin/sh
       - -c
@@ -82,7 +82,7 @@ services:
       - safa-muda-pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: safa_muda
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.prod}
       POSTGRES_DB: safa_muda
     networks:
       - safa-muda-net
@@ -110,18 +110,9 @@ services:
       context: ./app
       dockerfile: Dockerfile
       target: migrator
-    env_file:
-      - .env.prod
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://safa_muda:${POSTGRES_PASSWORD}@postgres:5432/safa_muda
-      AUTH_SECRET: ${AUTH_SECRET}
-      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
-      S3_ENDPOINT: http://minio:9000
-      S3_PUBLIC_ENDPOINT: https://${S3_PUBLIC_DOMAIN}
-      S3_BUCKET: safa-muda-media
-      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
-      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      DATABASE_URL: postgresql://safa_muda:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.prod}@postgres:5432/safa_muda
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,6 +120,7 @@ services:
         condition: service_completed_successfully
     networks:
       - safa-muda-net
+    user: node
     restart: "no"
     logging:
       driver: "json-file"
@@ -147,14 +139,14 @@ services:
       - .env.prod
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://safa_muda:${POSTGRES_PASSWORD}@postgres:5432/safa_muda
-      AUTH_SECRET: ${AUTH_SECRET}
-      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      DATABASE_URL: postgresql://safa_muda:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.prod}@postgres:5432/safa_muda
+      AUTH_SECRET: ${AUTH_SECRET:?defina AUTH_SECRET no .env.prod}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:?defina NEXT_PUBLIC_SERVER_URL no .env.prod}
       S3_ENDPOINT: http://minio:9000
-      S3_PUBLIC_ENDPOINT: https://${S3_PUBLIC_DOMAIN}
+      S3_PUBLIC_ENDPOINT: https://${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}
       S3_BUCKET: safa-muda-media
-      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
-      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER no .env.prod}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD no .env.prod}
     depends_on:
       postgres:
         condition: service_healthy
@@ -186,7 +178,7 @@ services:
       - "traefik.docker.network=traefik-net"
 
       # ── Main app router (HTTPS) ───────────────────────────────────────────
-      - "traefik.http.routers.app.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.app.rule=Host(`${TRAEFIK_DOMAIN:?defina TRAEFIK_DOMAIN no .env.prod}`)"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
       - "traefik.http.routers.app.tls.certresolver=letsencrypt"
@@ -205,7 +197,7 @@ services:
       - "traefik.http.middlewares.app-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       - "traefik.http.middlewares.app-headers.headers.permissionsPolicy=camera=(), microphone=(), geolocation=()"
       - "traefik.http.middlewares.app-headers.headers.customResponseHeaders.X-Permitted-Cross-Domain-Policies=none"
-      - "traefik.http.middlewares.app-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; worker-src blob:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+      - "traefik.http.middlewares.app-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}; worker-src blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
       - "traefik.http.routers.app.middlewares=app-headers"
 
 # ── Named volumes ─────────────────────────────────────────────────────────────
@@ -219,6 +211,7 @@ volumes:
 networks:
   safa-muda-net:
     driver: bridge
+    name: safa-muda-net   # nome fixo: o backup-db.sh entra nesta rede
   traefik-net:
     external: true   # created and managed by docker-compose.traefik.yml
     name: traefik-net

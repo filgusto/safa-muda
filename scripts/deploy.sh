@@ -135,7 +135,7 @@ docker compose -f "$COMPOSE_APP" up -d postgres minio
 log "Waiting for PostgreSQL to be healthy …"
 ELAPSED=0
 until docker compose -f "$COMPOSE_APP" exec -T postgres \
-        pg_isready -U app -d app &>/dev/null; do
+        pg_isready -U safa_muda -d safa_muda &>/dev/null; do
     if [[ $ELAPSED -ge 60 ]]; then
         fail "PostgreSQL did not become healthy within 60s. Check: docker compose -f docker-compose.prod.yml logs postgres"
     fi

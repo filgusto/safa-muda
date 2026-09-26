@@ -24,6 +24,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Auditoria de dependências
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Formatação
         run: npx prettier --check "**/*.{ts,tsx,md,json}"
 

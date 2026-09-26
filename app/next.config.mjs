@@ -6,9 +6,13 @@ const nextConfig = {
     // Skipping it here prevents any lint warning from blocking a production build.
     eslint: { ignoreDuringBuilds: true },
 
-    // CSP headers — mirrors the Traefik middleware policy in docker-compose.prod.yml
-    // so violations surface in dev instead of only in production.
+    // CSP só em desenvolvimento. Em produção a política vem do Traefik
+    // (docker-compose.prod.yml) — duas políticas se somam por interseção no
+    // navegador, e a do Next não conhece o host público do S3 em tempo de build,
+    // o que bloquearia o upload de fotos.
     async headers() {
+        if (process.env.NODE_ENV === 'production') return []
+
         // O upload é feito pelo navegador direto no MinIO, num host diferente
         // do da aplicação — sem liberar essa origem, o CSP bloqueia o PUT.
         // Ver app/lib/storage.ts.
