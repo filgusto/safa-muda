@@ -49,7 +49,7 @@ async function buscarGbifIdDireto(
   url.searchParams.set("name", nomeCientifico);
   url.searchParams.set("kingdom", "Plantae");
 
-  const resposta = await fetch(url);
+  const resposta = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   if (!resposta.ok) return null;
 
   const dados = (await resposta.json()) as RespostaGbif;
@@ -81,7 +81,7 @@ async function buscarINaturalistIdDireto(
   url.searchParams.set("rank", "species");
   url.searchParams.set("iconic_taxa", "Plantae");
 
-  const resposta = await fetch(url);
+  const resposta = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   if (!resposta.ok) return null;
 
   const dados = (await resposta.json()) as RespostaINaturalist;

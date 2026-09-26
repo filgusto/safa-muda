@@ -10,6 +10,7 @@ import {
   notification,
   user,
 } from "@/db/schema/index.ts";
+import { consumir, MENSAGEM_DE_LIMITE, REGRAS } from "@/lib/limite-de-taxa.ts";
 import { requireViewer, requireModerator, AccessError } from "@/lib/access.ts";
 import {
   propostaDeEdicaoSchema,
@@ -145,6 +146,9 @@ export async function minhaRegiao(): Promise<string | null> {
 export async function proporEdicao(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
+    if (!consumir(`proposta:${viewer.id}`, REGRAS.proposta)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const analise = await propostaDeEdicaoSchema.safeParseAsync(entrada);
     if (!analise.success) {
@@ -205,7 +209,10 @@ export async function proporEdicao(entrada: unknown): Promise<Resultado> {
  */
 export async function validarEdicao(entrada: unknown): Promise<Resultado> {
   try {
-    await requireViewer();
+    const viewer = await requireViewer();
+    if (!consumir(`validacao:${viewer.id}`, REGRAS.validacao)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const analise = await propostaDeEdicaoSchema.safeParseAsync(entrada);
     if (!analise.success) {
@@ -251,6 +258,9 @@ export async function proporEdicoesEmLote(
 ): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
+    if (!consumir(`proposta:${viewer.id}`, REGRAS.proposta)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const lote = loteDeEdicoesSchema.safeParse(entrada);
     if (!lote.success) return { ok: false, erro: "Dados inválidos." };
@@ -313,6 +323,9 @@ export async function proporEdicoesEmLote(
 export async function proporNovaEspecie(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
+    if (!consumir(`proposta:${viewer.id}`, REGRAS.proposta)) {
+      return { ok: false, erro: MENSAGEM_DE_LIMITE };
+    }
 
     const analise = await propostaDeNovaEspecieSchema.safeParseAsync(entrada);
     if (!analise.success) {

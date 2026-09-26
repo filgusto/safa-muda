@@ -1,4 +1,5 @@
 import { test, expect, devices, type Page } from "@playwright/test";
+import { cadastrar as cadastrarComCodigo } from "./ajuda.ts";
 
 /**
  * Arraste por toque e fundo de mapa.
@@ -6,17 +7,6 @@ import { test, expect, devices, type Page } from "@playwright/test";
  * O arraste é testado num contexto **sem mouse** e com toque habilitado — é
  * exatamente a condição em que o drag-and-drop nativo do HTML não funcionava.
  */
-
-async function cadastrar(page: Page) {
-  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@safamuda.test`;
-
-  await page.goto("/cadastro");
-  await page.getByLabel("Nome").fill("Agrofloresteiro Toque");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill("senhaDeTeste123");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page).toHaveURL("/", { timeout: 15_000 });
-}
 
 async function criarProjeto(page: Page, nome: string) {
   await page.goto("/projetos/novo");
@@ -42,7 +32,7 @@ test.describe("arraste por toque", () => {
   test("arrasta uma espécie do catálogo até a faixa do estrato", async ({
     page,
   }) => {
-    await cadastrar(page);
+    await cadastrarComCodigo(page, "Agrofloresteiro Toque");
     await criarProjeto(page, "Toque");
 
     await page.getByPlaceholder("Buscar espécie…").fill("Banana Nanica");
@@ -95,7 +85,7 @@ test.describe("arraste por toque", () => {
   });
 
   test("o botão + adiciona sem arrastar", async ({ page }) => {
-    await cadastrar(page);
+    await cadastrarComCodigo(page, "Agrofloresteiro Toque");
     await criarProjeto(page, "Sem arraste");
 
     await page.getByPlaceholder("Buscar espécie…").fill("Alface");
@@ -113,7 +103,7 @@ test.describe("arraste por toque", () => {
 });
 
 test("o fundo de mapa exige área georreferenciada", async ({ page }) => {
-  await cadastrar(page);
+  await cadastrarComCodigo(page, "Agrofloresteiro Toque");
   await criarProjeto(page, "Mapa");
 
   await page.getByRole("button", { name: /Espaço/ }).click();

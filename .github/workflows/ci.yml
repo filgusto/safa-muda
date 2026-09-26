@@ -118,11 +118,21 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # O login só abre para e-mail confirmado: o código chega por SMTP e o
+      # teste o lê pela API HTTP do Mailpit (ver app/e2e/ajuda.ts).
+      mailpit:
+        image: axllent/mailpit:v1.21
+        ports:
+          - 1025:1025
+          - 8025:8025
 
     env:
       DATABASE_URL: postgresql://safa_muda:senha_ci@localhost:5432/safa_muda
       AUTH_SECRET: segredo_de_teste_para_a_ci_apenas
       NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+      E2E_MAILPIT_URL: http://localhost:8025
 
     steps:
       - uses: actions/checkout@v4

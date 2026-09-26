@@ -9,8 +9,16 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        // Keep private/admin/API routes out of search indexes
-        disallow: ["/admin", "/api/"],
+        // Áreas privadas, de conta e a API fora dos índices de busca
+        disallow: [
+          "/admin",
+          "/api/",
+          "/conta",
+          "/projetos",
+          "/webapp",
+          "/entrar",
+          "/cadastro",
+        ],
         allow: "/",
       },
     ],

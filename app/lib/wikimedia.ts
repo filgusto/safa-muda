@@ -79,6 +79,7 @@ export async function buscarMetadadosWikimedia(
 
   const resposta = await fetch(`${ORIGEM}/w/api.php?${parametros}`, {
     headers: { "User-Agent": "SafaMuda/1.0 (https://safamuda.org.br)" },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!resposta.ok) {
     throw new WikimediaError(
@@ -122,14 +123,42 @@ export async function buscarMetadadosWikimedia(
   };
 }
 
+/** Teto do que se aceita baixar do Commons antes de comprimir. */
+const LIMITE_DO_DOWNLOAD_BYTES = 15 * 1024 * 1024;
+
 export async function baixarImagemWikimedia(url: string): Promise<Buffer> {
+  // Só o servidor de arquivos do Commons: a URL vem da API deles, mas nada
+  // aqui deve buscar outro host, nem por redirecionamento.
+  if (new URL(url).hostname !== "upload.wikimedia.org") {
+    throw new WikimediaError("Endereço de imagem inesperado.");
+  }
   const resposta = await fetch(url, {
     headers: { "User-Agent": "SafaMuda/1.0 (https://safamuda.org.br)" },
+    signal: AbortSignal.timeout(20_000),
   });
-  if (!resposta.ok) {
+  if (
+    !resposta.ok ||
+    new URL(resposta.url).hostname !== "upload.wikimedia.org"
+  ) {
     throw new WikimediaError("Não foi possível baixar a imagem do Commons.");
   }
-  return Buffer.from(await resposta.arrayBuffer());
+  const declarado = Number(resposta.headers.get("content-length") ?? 0);
+  if (declarado > LIMITE_DO_DOWNLOAD_BYTES || !resposta.body) {
+    throw new WikimediaError("A imagem do Commons é grande demais.");
+  }
+
+  // Lê aos poucos e corta ao passar do teto: o Content-Length pode faltar ou
+  // mentir.
+  const partes: Uint8Array[] = [];
+  let total = 0;
+  for await (const parte of resposta.body as unknown as AsyncIterable<Uint8Array>) {
+    total += parte.byteLength;
+    if (total > LIMITE_DO_DOWNLOAD_BYTES) {
+      throw new WikimediaError("A imagem do Commons é grande demais.");
+    }
+    partes.push(parte);
+  }
+  return Buffer.concat(partes);
 }
 
 /** Texto de crédito sugerido a partir dos metadados — o usuário confere e pode ajustar. */
