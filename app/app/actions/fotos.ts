@@ -122,6 +122,21 @@ export async function adicionarFoto(entrada: unknown): Promise<Resultado> {
     });
     if (!especie) return { ok: false, erro: "Espécie não encontrada." };
 
+    // Só a mídia que a própria pessoa enviou, e que ainda não ilustra nada:
+    // sem isso, um `mediaId` vazado vincularia (e depois apagaria) a foto de
+    // outra pessoa.
+    const [propria] = await db
+      .select({ id: media.id })
+      .from(media)
+      .where(and(eq(media.id, mediaId), eq(media.uploadedBy, viewer.id)));
+    if (!propria) return { ok: false, erro: "Imagem não encontrada." };
+    const [emUso] = await db
+      .select({ id: speciesFoto.id })
+      .from(speciesFoto)
+      .where(eq(speciesFoto.mediaId, mediaId))
+      .limit(1);
+    if (emUso) return { ok: false, erro: "Esta imagem já está em uso." };
+
     await criarSpeciesFoto({
       viewerId: viewer.id,
       aprovada: isModerator(viewer),
@@ -243,7 +258,7 @@ export async function importarFotoDoWikimedia(
     const original = await baixarImagemWikimedia(metadados.thumbUrl);
     const comprimida = await comprimirParaArmazenar(original);
 
-    const key = gerarChave(`${titulo}.jpg`);
+    const key = gerarChave("image/jpeg");
     await s3.send(
       new PutObjectCommand({
         Bucket: BUCKET,

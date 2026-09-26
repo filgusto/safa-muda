@@ -1,6 +1,5 @@
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { randomUUID } from "node:crypto";
 import { LIMITE_DE_UPLOAD_BYTES } from "./limite-de-upload.ts";
 
@@ -69,29 +68,49 @@ export function ehTipoPermitido(mimeType: string): boolean {
   return (TIPOS_PERMITIDOS as readonly string[]).includes(mimeType);
 }
 
+const EXTENSAO_POR_TIPO: Record<(typeof TIPOS_PERMITIDOS)[number], string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/avif": ".avif",
+};
+
 /**
  * Gera uma chave de objeto opaca. Não deriva do nome original: nomes de arquivo
- * de campo colidem muito ("IMG_0001.jpg") e podem carregar dado pessoal.
+ * de campo colidem muito ("IMG_0001.jpg"), podem carregar dado pessoal e a
+ * extensão vinda do cliente é livre ("x.svg", "x.html"). A extensão sai do tipo
+ * já validado.
  */
-export function gerarChave(filename: string): string {
-  const extensao = filename.includes(".")
-    ? filename.slice(filename.lastIndexOf(".")).toLowerCase()
-    : "";
+export function gerarChave(contentType: string): string {
+  const extensao =
+    EXTENSAO_POR_TIPO[contentType as keyof typeof EXTENSAO_POR_TIPO];
+  if (!extensao)
+    throw new Error(`Tipo de arquivo não permitido: ${contentType}`);
   const hoje = new Date().toISOString().slice(0, 7); // AAAA-MM
   return `${hoje}/${randomUUID()}${extensao}`;
 }
 
-/** URL pré-assinada para o navegador subir o arquivo. Vale 5 minutos. */
-export async function urlDeUpload(params: {
+/**
+ * POST pré-assinado para o navegador subir o arquivo. Vale 5 minutos.
+ *
+ * Diferente de um PUT pré-assinado, a política assinada fixa a chave, o tipo e
+ * o tamanho: o MinIO recusa qualquer envio fora de `1 … TAMANHO_MAXIMO_BYTES`
+ * ou com outro Content-Type, mesmo que o cliente declare um tamanho falso.
+ */
+export async function postDeUpload(params: {
   key: string;
   contentType: string;
-}): Promise<string> {
-  const comando = new PutObjectCommand({
+}): Promise<{ url: string; fields: Record<string, string> }> {
+  return createPresignedPost(s3Publico, {
     Bucket: BUCKET,
     Key: params.key,
-    ContentType: params.contentType,
+    Conditions: [
+      ["content-length-range", 1, TAMANHO_MAXIMO_BYTES],
+      ["eq", "$Content-Type", params.contentType],
+    ],
+    Fields: { "Content-Type": params.contentType },
+    Expires: 300,
   });
-  return getSignedUrl(s3Publico, comando, { expiresIn: 300 });
 }
 
 export async function removerObjeto(key: string): Promise<void> {

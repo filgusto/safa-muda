@@ -7,7 +7,7 @@ import { comprimirParaEnvio } from "@/lib/comprimir-imagem.ts";
  * e o que vier depois — para que a redução a 1 MB (ver comprimir-imagem.ts)
  * valha em todo o site, e não só onde alguém lembrou de aplicá-la.
  *
- * O arquivo vai direto ao MinIO por URL pré-assinada: uma foto de celular
+ * O arquivo vai direto ao MinIO por POST pré-assinado: uma foto de celular
  * nunca passa pela memória do processo Next.
  */
 export async function enviarMidia(
@@ -32,13 +32,17 @@ export async function enviarMidia(
     throw new Error(corpo?.error ?? "Falha ao preparar o envio.");
   }
 
-  const { mediaId, uploadUrl, publicUrl } = await preparo.json();
+  const { mediaId, upload, publicUrl } = await preparo.json();
 
-  const envio = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": arquivo.type },
-    body: arquivo,
-  });
+  // Os campos da política vão antes do arquivo — o S3 ignora o que vier depois
+  // do campo `file`.
+  const formulario = new FormData();
+  for (const [campo, valor] of Object.entries(upload.fields)) {
+    formulario.append(campo, valor as string);
+  }
+  formulario.append("file", arquivo);
+
+  const envio = await fetch(upload.url, { method: "POST", body: formulario });
   if (!envio.ok) throw new Error("Falha ao enviar a imagem.");
 
   return { mediaId, publicUrl, arquivo };
