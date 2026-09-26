@@ -57,6 +57,12 @@ export const changeProposal = pgTable(
      */
     fonte: text("fonte").notNull(),
     justificativa: text("justificativa"),
+    /**
+     * Onde a observação foi feita: "Cidade, UF" ou "UF", da lista do IBGE.
+     * Opcional — um livro pode não dizer. Só é guardado, para análise futura
+     * de quanto os valores variam por região; não aparece na ficha.
+     */
+    localDaObservacao: text("local_da_observacao"),
 
     status: propostaStatusEnum("status").notNull().default("pendente"),
 
@@ -98,11 +104,29 @@ export const speciesRevision = pgTable(
 
     patch: jsonb("patch").$type<Record<string, unknown>>().notNull(),
     snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    /**
+     * Como estavam os campos do patch antes desta revisão: `valores` e `fontes`
+     * (proveniência, `null` = sem fonte), pelo nome do campo. É o que permite
+     * a moderação excluir a contribuição e devolver o campo ao que era. Nulo
+     * quando não dá para saber (primeira revisão de uma espécie antiga).
+     */
+    antes: jsonb("antes").$type<{
+      valores: Record<string, unknown>;
+      fontes: Record<string, string | null>;
+    }>(),
     fonte: text("fonte").notNull(),
+    /** Copiado da proposta aprovada: o local do valor que entrou na ficha. */
+    localDaObservacao: text("local_da_observacao"),
 
     autorId: text("autor_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    /**
+     * Como o autor é citado depois de excluir a conta. Só é preenchido nesse
+     * momento (app/actions/conta.ts): com o autor vivo, a citação vem do
+     * perfil dele. Nunca guarda links externos.
+     */
+    autorCitacao: text("autor_citacao"),
     revisorId: text("revisor_id").references(() => user.id, {
       onDelete: "set null",
     }),

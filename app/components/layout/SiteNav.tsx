@@ -8,11 +8,9 @@ import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useNav } from "./NavContext";
 
-// Seções de topo. O planejador entra na fase 3.
-const NAV_LINKS = [
-  { label: "Catálogo", href: "/safdex" },
-  { label: "Projetos", href: "/projetos" },
-];
+// Seções de topo. "Projetos" fica oculto até o planejador estar pronto para
+// produção — a rota continua existindo, só não aparece na nav.
+const NAV_LINKS = [{ label: "Catálogo", href: "/safdex" }];
 
 /**
  * `menu` é preenchido pelo layout com o MenuDoUsuario (botão-ícone do usuário,
@@ -95,12 +93,12 @@ export function SiteNav({ menu }: { menu?: React.ReactNode }) {
         </div>
 
         {/* Right side buttons — always visible */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
-              className="flex items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label="Alternar tema"
+              className="flex items-center justify-center h-10 w-10 sm:h-6 sm:w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
             >
               {theme === "dark" ? (
                 <Sun className="h-3.5 w-3.5" />
@@ -113,8 +111,8 @@ export function SiteNav({ menu }: { menu?: React.ReactNode }) {
           {hasSidebar && (
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              aria-label={sidebarOpen ? "Hide menu" : "Show menu"}
-              className="flex items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label={sidebarOpen ? "Ocultar menu" : "Mostrar menu"}
+              className="flex items-center justify-center h-10 w-10 sm:h-6 sm:w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
             >
               {sidebarOpen ? (
                 <PanelRightClose className="h-4 w-4" />

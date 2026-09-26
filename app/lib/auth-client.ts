@@ -15,12 +15,27 @@ export const authClient = createAuthClient({
     // para a interface decidir o que mostrar — a autorização de verdade
     // continua no servidor (lib/access.ts).
     inferAdditionalFields({
-      user: { role: { type: "string", required: false, input: false } },
+      user: {
+        role: { type: "string", required: false, input: false },
+        // Para flexionar os textos dirigidos à pessoa na interface.
+        tratamento: { type: "string", required: false, input: false },
+        // Versão dos termos aceita, enviada no cadastro (lib/termos.ts).
+        termosVersao: { type: "string", required: true, input: true },
+      },
     }),
   ],
 });
 
-export const { signIn, signUp, signOut, useSession, emailOtp } = authClient;
+export const {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  emailOtp,
+  updateUser,
+  changePassword,
+  $store,
+} = authClient;
 
 const nuncaMuda = () => () => {};
 
@@ -57,6 +72,8 @@ const MENSAGENS: Record<string, string> = {
   PASSWORD_TOO_LONG: "Senha longa demais.",
   USER_ALREADY_EXISTS: "Já existe uma conta com esse e-mail.",
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Já existe uma conta com esse e-mail.",
+  EMAIL_IS_THE_SAME: "Este já é o e-mail da sua conta.",
+  TERMS_NOT_ACCEPTED: "Aceite os Termos de Uso e a Política de Privacidade.",
   INVALID_OTP: "Código incorreto.",
   OTP_EXPIRED: "Este código expirou. Peça um novo.",
   TOO_MANY_ATTEMPTS: "Muitas tentativas com código errado. Peça um novo.",

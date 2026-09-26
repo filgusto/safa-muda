@@ -10,12 +10,12 @@ Planejamento 4D (tempo × estratos × espaço) + catálogo colaborativo + diári
 
 ## 0. Decisões fechadas
 
-| Tema | Decisão | Implicação |
-|---|---|---|
-| **Licença** | **AGPL-3.0** | Quem hospedar versão modificada como serviço abre o código. Cabeçalho de licença nos arquivos e `LICENSE` na raiz, Fase 0. |
-| **Nome** | **`safa-muda`** | Rename global na Fase 0: rede `safa-muda-net`, volumes `safa-muda-pgdata` / `safa-muda-minio-data`, bucket `safa-muda-media`, usuário/DB `safa_muda`. |
-| **Acesso** | Catálogo **público**; projetos **privados** por padrão | Leitura do catálogo e fichas sem login (SEO + valor público do wiki). Login para propor edição e para criar/ver projetos. Link não-listado opcional por projeto. Middleware e políticas de leitura precisam distinguir os dois desde a Fase 0. |
-| **Granularidade da timeline** | **Mês**, com zoom agregando em anos | `t_start_month` / `t_end_month` inteiros. Escala horizontal virtualizada; níveis de zoom mês → trimestre → ano. Suporta tanto alface de 45 dias quanto jequitibá de 40 anos. |
+| Tema                          | Decisão                                                | Implicação                                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Licença**                   | **AGPL-3.0**                                           | Quem hospedar versão modificada como serviço abre o código. Cabeçalho de licença nos arquivos e `LICENSE` na raiz, Fase 0.                                                                                                                     |
+| **Nome**                      | **`safa-muda`**                                        | Rename global na Fase 0: rede `safa-muda-net`, volumes `safa-muda-pgdata` / `safa-muda-minio-data`, bucket `safa-muda-media`, usuário/DB `safa_muda`.                                                                                          |
+| **Acesso**                    | Catálogo **público**; projetos **privados** por padrão | Leitura do catálogo e fichas sem login (SEO + valor público do wiki). Login para propor edição e para criar/ver projetos. Link não-listado opcional por projeto. Middleware e políticas de leitura precisam distinguir os dois desde a Fase 0. |
+| **Granularidade da timeline** | **Mês**, com zoom agregando em anos                    | `t_start_month` / `t_end_month` inteiros. Escala horizontal virtualizada; níveis de zoom mês → trimestre → ano. Suporta tanto alface de 45 dias quanto jequitibá de 40 anos.                                                                   |
 
 ---
 
@@ -26,11 +26,11 @@ ferramenta que **valide um desenho** e **acompanhe o sistema ao longo do tempo**
 
 Safa Muda tem três peças que só fazem sentido juntas:
 
-| Peça | O que é | O que a torna diferente |
-|---|---|---|
-| **Catálogo** | Wiki de espécies com parâmetros agroflorestais | Colaborativo e moderado — o conhecimento melhora com o uso |
-| **Planejador** | Timeline (tempo × estrato) + Mapa (croqui ou SIG) | Duas vistas do **mesmo** desenho, integradas |
-| **Diário** | Registro do que foi realmente plantado/podado/colhido | O planejamento se corrige com a realidade |
+| Peça           | O que é                                               | O que a torna diferente                                    |
+| -------------- | ----------------------------------------------------- | ---------------------------------------------------------- |
+| **Catálogo**   | Wiki de espécies com parâmetros agroflorestais        | Colaborativo e moderado — o conhecimento melhora com o uso |
+| **Planejador** | Timeline (tempo × estrato) + Mapa (croqui ou SIG)     | Duas vistas do **mesmo** desenho, integradas               |
+| **Diário**     | Registro do que foi realmente plantado/podado/colhido | O planejamento se corrige com a realidade                  |
 
 O público vai do hobbista com uma ilha agroflorestal ao produtor com leiras em
 linha de produção. A modelagem precisa escalar de 20 plantas a dezenas de
@@ -38,7 +38,7 @@ milhares sem mudar de paradigma.
 
 ### Princípio norteador
 
-> *"Deixamos de cultivar plantas para começar a cultivar processos."*
+> _"Deixamos de cultivar plantas para começar a cultivar processos."_
 > — Guia dos Estratos Agroflorestais
 
 O software instrumenta o **processo**. O catálogo é meio, não fim.
@@ -52,15 +52,15 @@ Ficam codificados em `core/` desde já, mesmo que a v1 use pouco deles.
 
 ### 2.1 Estratos e luz
 
-Estimativas de Ernst Götsch, registradas em *Agroflorestando o Mundo*, cap. 7.3:
+Estimativas de Ernst Götsch, registradas em _Agroflorestando o Mundo_, cap. 7.3:
 
-| Estrato | Luz que **deixa passar** | Ocupação ideal do andar |
-|---|---|---|
-| Emergente | ~80% | 20% |
-| Alto | ~60% | 40% |
-| Médio | ~40% | 60% |
-| Baixo | ~20% | 80% |
-| Rasteiro | — | (citado no Guia, sem número) |
+| Estrato   | Luz que **deixa passar** | Ocupação ideal do andar      |
+| --------- | ------------------------ | ---------------------------- |
+| Emergente | ~80%                     | 20%                          |
+| Alto      | ~60%                     | 40%                          |
+| Médio     | ~40%                     | 60%                          |
+| Baixo     | ~20%                     | 80%                          |
+| Rasteiro  | —                        | (citado no Guia, sem número) |
 
 `ocupação_ideal = 100% − luz_transmitida`. É essa complementaridade que permite
 somar 170%–277% de área plantada num mesmo canteiro (cap. 10, tabelas 2–6).
@@ -113,7 +113,7 @@ escopo abaixo e é trabalho conhecido — mas não é de graça.
 ### 3.2 O plano métrico local (decisão central do mapa)
 
 Toda geometria de desenho é armazenada **em metros, num plano cartesiano local**
-com origem na âncora da área. O georreferenciamento é um *atributo opcional* da
+com origem na âncora da área. O georreferenciamento é um _atributo opcional_ da
 área — não uma forma alternativa de armazenar.
 
 ```
@@ -180,23 +180,23 @@ são linkáveis e sobrevivem ao reload, sem transição de página.
 
 ## 4. Stack
 
-| Camada | Escolha | Nota |
-|---|---|---|
-| Framework | Next.js 15 (App Router), React 19 | mantido |
-| Estilo | Tailwind + shadcn/ui + tokens Kuara | mantido integralmente |
-| ORM | **Drizzle + drizzle-kit** | TS-nativo, SQL explícito, PostGIS via custom types |
-| Banco | **postgis/postgis:16-3.4** | substitui `postgres:16-alpine` |
-| Auth | **Better Auth** | self-hosted, adapter Drizzle, RBAC simples |
-| Estado servidor | TanStack Query | cache + optimistic updates |
-| Estado de URL | nuqs | mantém a SPA linkável |
-| Validação | Zod | schemas compartilhados cliente/servidor |
-| Mapa | **MapLibre GL JS** | sem token, sem vendor lock-in |
-| Projeção | proj4js | local ↔ WGS84 |
-| Desenho | canvas/SVG próprio sobre o plano local | mesmo código nos dois modos |
-| Drag & drop | dnd-kit | catálogo → timeline |
-| Arquivos | @aws-sdk/client-s3 → MinIO | upload por URL pré-assinada |
-| Testes | Vitest (mantido) + Playwright (fase 5) | |
-| i18n | next-intl, pt-BR default | estrutura pronta, sem traduzir agora |
+| Camada          | Escolha                                | Nota                                               |
+| --------------- | -------------------------------------- | -------------------------------------------------- |
+| Framework       | Next.js 15 (App Router), React 19      | mantido                                            |
+| Estilo          | Tailwind + shadcn/ui + tokens Kuara    | mantido integralmente                              |
+| ORM             | **Drizzle + drizzle-kit**              | TS-nativo, SQL explícito, PostGIS via custom types |
+| Banco           | **postgis/postgis:16-3.4**             | substitui `postgres:16-alpine`                     |
+| Auth            | **Better Auth**                        | self-hosted, adapter Drizzle, RBAC simples         |
+| Estado servidor | TanStack Query                         | cache + optimistic updates                         |
+| Estado de URL   | nuqs                                   | mantém a SPA linkável                              |
+| Validação       | Zod                                    | schemas compartilhados cliente/servidor            |
+| Mapa            | **MapLibre GL JS**                     | sem token, sem vendor lock-in                      |
+| Projeção        | proj4js                                | local ↔ WGS84                                      |
+| Desenho         | canvas/SVG próprio sobre o plano local | mesmo código nos dois modos                        |
+| Drag & drop     | dnd-kit                                | catálogo → timeline                                |
+| Arquivos        | @aws-sdk/client-s3 → MinIO             | upload por URL pré-assinada                        |
+| Testes          | Vitest (mantido) + Playwright (fase 5) |                                                    |
+| i18n            | next-intl, pt-BR default               | estrutura pronta, sem traduzir agora               |
 
 **Basemaps (modo SIG):** OSM raster como padrão (livre, com atribuição), e
 provedor de satélite configurável por env var. Nenhuma chave de API obrigatória
@@ -215,6 +215,26 @@ Esboço. Nomes finais no schema Drizzle; enums em Postgres nativos.
 user            id, name, email, image, role(user|moderator|admin), created_at
 session/account (Better Auth)
 ```
+
+O cadastro pede só nome, e-mail, senha e o aceite dos Termos. O resto é **perfil
+opcional**, preenchido depois em `/conta` — nulo é "não informado", como no
+catálogo:
+
+```
+user (opcionais)  regiao, perfil_de_uso, experiencia, bio,
+                  link_instagram, link_site, link_lattes
+user (preferências) credito_nome(completo|primeiro_nome|anonimo), aviso_por_email
+user (consentimento) termos_versao, termos_aceitos_em   -- lib/termos.ts
+```
+
+Regras de privacidade (LGPD): nenhum dado de perfil é público hoje; o nome só
+aparece conforme `credito_nome`. Região é "Cidade, UF" escolhida na lista de municípios do IBGE (conferida no servidor), nunca coordenada. O
+aceite é registrado no servidor (hook em `lib/auth.ts`) e trocar a versão em
+`lib/termos.ts` pede novo aceite. `/conta` oferece exportar os dados
+(`/api/conta/exportar`) e excluir a conta; a exclusão apaga o cadastro, a foto
+e o que era privado; o histórico já publicado permanece, sem vínculo com a
+conta, e a pessoa escolhe ao excluir se a citação é mantida (sem links) ou
+anonimizada (`species_revision.autor_citacao`). Os textos em `/termos` e `/privacidade` precisam de revisão jurídica.
 
 ### 5.2 Catálogo (wiki)
 
@@ -312,13 +332,12 @@ correções → montagem), com dataset e correções commitados para revisão em
 Proveniência por campo: 2 628 valores do Messerschmidt, 138 do cap. 10 do Neto,
 24 de correção editorial. Seis campos ficaram nulos por a fonte não informar.
 
-
 - **Limpeza da tabela** (script versionado em `scripts/seed/`, com log de
   correções auditável):
   - typos: `Placenda`/`Plaventa` → `Placenta`, `Secundatia` → `Secundária`
-  - taxonomia: `Laurus persea` → *Persea americana*; `Acácia meransii` →
-    *Acacia mearnsii*; Quinoa com família correta (Amaranthaceae); Batata Salsa
-    → *Arracacia xanthorrhiza*
+  - taxonomia: `Laurus persea` → _Persea americana_; `Acácia meransii` →
+    _Acacia mearnsii_; Quinoa com família correta (Amaranthaceae); Batata Salsa
+    → _Arracacia xanthorrhiza_
   - colunas deslocadas: Cangerana, Calistemo
   - duplicatas: Jenipapo/Genipapo; Cabeludinha vs. Grumixama (mesmo binômio)
   - normalização de acentos, capitalização e vocabulários fechados
@@ -338,7 +357,6 @@ marca como `comunidade` **apenas** a proveniência dos campos tocados,
 preservando a dos demais. Rejeitar exige nota — quem contribuiu precisa
 entender o porquê.
 
-
 - Proposta de edição e de nova espécie (formulário com validação Zod).
 - Fila de moderação: diff campo a campo, aprovar / rejeitar / comentar.
 - Histórico de revisões por espécie, com autoria.
@@ -354,12 +372,11 @@ esquerda; arrastar de lá cria o plantio com duração sugerida pelo ciclo da
 espécie. Estrato divergente do catálogo é permitido, mas fica marcado
 (borda tracejada + aviso). Todo o cálculo vive em `core/planejamento.ts`.
 
-
 - CRUD de projeto (nome, data de início, horizonte em anos, membros).
 - **Timeline:** eixo X = tempo (ano/mês), eixo Y = faixas de estrato
   (Emergente / Alto / Médio / Baixo / Rasteiro).
 - Painel do catálogo acoplado; arrastar espécie → barra na faixa do seu estrato.
-- Barra redimensionável (início e duração); *snap* configurável.
+- Barra redimensionável (início e duração); _snap_ configurável.
 - Restrição da v1: **a espécie cai na faixa do seu estrato** (com override
   explícito e marcado, porque agrofloresteiro experiente às vezes quer isso).
 - Linha "hoje" e controle de horizonte.
@@ -375,7 +392,6 @@ posicionamento de plantio em trecho de linha, contagem e densidade ao vivo,
 georreferência opcional e exportação SVG + GeoJSON (WGS84).
 
 O modo SIG ganhou o fundo de mapa depois, sem MapLibre — ver §7.4.
-
 
 - **Modo croqui:** fundo branco, régua e escala, desenho de polígono da área com
   medidas reais, cotas.
@@ -488,7 +504,7 @@ Sendo honesto sobre os limites do dataset:
   planta fica no sistema continua sendo do plantio.
 
   Dois eixos têm base pública estruturada, e `npm run
-  db:enriquecer-ciclo-e-habito` os carrega (`lib/tracos-externos.ts`):
+db:enriquecer-ciclo-e-habito` os carrega (`lib/tracos-externos.ts`):
   hábito, da Flora e Funga do Brasil (pelo perfil que a lista publica no
   GBIF), e ciclo biológico, do campo "Duration" da USDA PLANTS (só casamento
   exato do nome aceito). O script só grava campo vazio, marca a fonte de cada
@@ -499,6 +515,23 @@ Sendo honesto sobre os limites do dataset:
   base de origem como fonte, não `comunidade`. Frutificação, longevidade, altura madura e
   "produz a partir de" não têm fonte estruturada ampla: seguem com a wiki. O
   iNaturalist não serve aqui: guarda observações, não traços da espécie.
+
+  **Época de frutificação** (`mesesDeFrutificacao`, meses do ano): campo
+  próprio, independente de `frutificacao` — a maioria das espécies não tem
+  esse eixo preenchido, e amarrar um ao outro deixaria os meses sem uso.
+  Nasce vazio e só a wiki preenche, com fonte: nenhuma base ampla traz a
+  época, e ela muda com região e clima (o catálogo ainda não tem bioma), então
+  a fonte deve citar a região. O calendário de colheita da Fase 6 continua
+  derivado do ciclo; não usa este campo.
+
+  **Local da observação.** Cada sugestão pode declarar onde a observação foi
+  feita (`localDaObservacao`: "Cidade, UF" ou só "UF", da lista do IBGE), em
+  `change_proposal` e, na aprovação, copiado para `species_revision`. É
+  opcional — um livro pode não dizer — e vem pré-preenchido com a região do
+  cadastro. Os campos da espécie continuam únicos: o local só é **guardado**,
+  sem aparecer na ficha, para acumular dados e decidir depois, com evidência,
+  se algum parâmetro justifica um valor por região.
+
 - **Poda:** existem os campos, mas nenhuma espécie os tem preenchidos, e
   nenhuma base pública ampla os cobre com confiança (a "Resprout Ability" da
   USDA existe para poucas espécies e erra casos conhecidos, como a gliricídia

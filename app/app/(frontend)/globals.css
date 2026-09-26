@@ -5,7 +5,6 @@
 /* Fonts are loaded via next/font/google in layout.tsx (self-hosted, no render-blocking request) */
 
 @layer base {
-
   /* ─── Dark Mode (default) ─────────────────────────────────────── */
   :root {
     --background: 160 30% 6%;
@@ -98,11 +97,13 @@
     content: "";
     position: fixed;
     inset: 0;
-    background: linear-gradient(135deg,
-        #0B1411 0%,
-        #11201A 40%,
-        #0d1816 70%,
-        #0B1411 100%);
+    background: linear-gradient(
+      135deg,
+      #0b1411 0%,
+      #11201a 40%,
+      #0d1816 70%,
+      #0b1411 100%
+    );
     background-size: 300% 300%;
     animation: bg-breathe 35s ease infinite;
     z-index: -1;
@@ -110,7 +111,13 @@
   }
 
   .light body::before {
-    background: linear-gradient(135deg, #F2F5F1 0%, #E6ECE7 40%, #EDF1EC 70%, #F2F5F1 100%);
+    background: linear-gradient(
+      135deg,
+      #f2f5f1 0%,
+      #e6ece7 40%,
+      #edf1ec 70%,
+      #f2f5f1 100%
+    );
     background-size: 300% 300%;
     animation: bg-breathe 35s ease infinite;
   }
@@ -142,7 +149,6 @@
     color: hsl(var(--foreground));
   }
 }
-
 
 /* ─── Croqui do mapa de plantio ─────────────────────────────────────────────
    O SVG do croqui desenha o plano métrico local. As cores vivem aqui, e não
@@ -197,7 +203,6 @@
 }
 
 @layer utilities {
-
   /* Scroll-reveal helper – apply via JS intersection observer */
   .reveal {
     @apply opacity-0;
@@ -210,13 +215,13 @@
   /* Bio link underline animation */
   .bio-link {
     @apply relative no-underline;
-    color: #2FA8B8;
+    color: #2fa8b8;
   }
 
   .bio-link::after {
     content: "";
     @apply absolute left-0 bottom-0 h-px w-0 transition-[width] duration-200;
-    background-color: #2FA8B8;
+    background-color: #2fa8b8;
   }
 
   .bio-link:hover::after {
@@ -225,14 +230,16 @@
 
   /* Glow border utility */
   .glow-border {
-    box-shadow: 0 0 0 1px #3FAF5C, 0 0 14px 0 rgba(63, 175, 92, 0.25);
+    box-shadow:
+      0 0 0 1px #3faf5c,
+      0 0 14px 0 rgba(63, 175, 92, 0.25);
   }
 
   /* Data metric mono style */
   .metric {
     @apply font-medium tracking-wide;
     font-family: var(--font-ibm-plex-mono), Menlo, monospace;
-    color: #3FAF5C;
+    color: #3faf5c;
   }
 }
 
@@ -265,7 +272,9 @@
   text-decoration-color: hsl(var(--secondary) / 0.45) !important;
   text-underline-offset: 3px !important;
   font-weight: inherit !important;
-  transition: color 0.2s ease, text-decoration-color 0.2s ease !important;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease !important;
 }
 
 .prose a:hover {
@@ -309,7 +318,10 @@
     display: none !important;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     break-after: avoid;
     page-break-after: avoid;
   }

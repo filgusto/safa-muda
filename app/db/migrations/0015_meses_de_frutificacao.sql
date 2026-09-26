@@ -1,0 +1,2 @@
+CREATE TYPE "public"."mes" AS ENUM('jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez');--> statement-breakpoint
+ALTER TABLE "species" ADD COLUMN "meses_de_frutificacao" "mes"[] DEFAULT '{}' NOT NULL;

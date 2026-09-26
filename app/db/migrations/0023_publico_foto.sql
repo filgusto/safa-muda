@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "publico_foto" boolean DEFAULT false NOT NULL;

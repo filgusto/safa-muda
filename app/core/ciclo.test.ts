@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatarLongevidade,
+  formatarMeses,
   inconsistenciasDoCiclo,
   type CamposDoCiclo,
 } from "./ciclo.ts";
@@ -84,5 +85,54 @@ describe("inconsistenciasDoCiclo", () => {
         campos({ cicloDeVida: ["anual", "perene"], longevidadeMinAnos: 5 }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("formatarMeses", () => {
+  it("devolve null sem meses", () => {
+    expect(formatarMeses([])).toBeNull();
+  });
+
+  it("lista meses soltos", () => {
+    expect(formatarMeses(["mar", "set"])).toBe("mar, set");
+  });
+
+  it("junta sequências em intervalo", () => {
+    expect(formatarMeses(["dez", "jan", "fev", "mar"])).toBe("dez a mar");
+  });
+
+  it("junta dois meses seguidos com 'e'", () => {
+    expect(formatarMeses(["jan", "fev"])).toBe("jan e fev");
+  });
+
+  it("atravessa a virada do ano", () => {
+    expect(formatarMeses(["jan", "nov", "dez"])).toBe("nov a jan");
+  });
+
+  it("separa trechos distintos", () => {
+    expect(formatarMeses(["jan", "fev", "mar", "ago"])).toBe("jan a mar, ago");
+  });
+
+  it("ignora a ordem e a repetição da entrada", () => {
+    expect(formatarMeses(["mar", "jan", "fev", "jan"])).toBe("jan a mar");
+  });
+
+  it("diz o ano todo quando são os doze", () => {
+    expect(
+      formatarMeses([
+        "jan",
+        "fev",
+        "mar",
+        "abr",
+        "mai",
+        "jun",
+        "jul",
+        "ago",
+        "set",
+        "out",
+        "nov",
+        "dez",
+      ]),
+    ).toBe("o ano todo");
   });
 });

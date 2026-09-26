@@ -106,6 +106,83 @@
       "when": 1789756164052,
       "tag": "0014_foto_principal",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790338390022,
+      "tag": "0015_meses_de_frutificacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790344642282,
+      "tag": "0016_perfil_opcional_e_consentimento",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790345818746,
+      "tag": "0017_perfil_de_uso_outro",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790346667036,
+      "tag": "0018_citacao_outro",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790346732529,
+      "tag": "0019_citar_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790346884116,
+      "tag": "0020_local_da_observacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790347136804,
+      "tag": "0021_citacao_apos_exclusao",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790347761313,
+      "tag": "0022_tornar_publico",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790348134368,
+      "tag": "0023_publico_foto",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790439601583,
+      "tag": "0024_tratamento_preferido",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790440034052,
+      "tag": "0025_antes_da_revisao",
+      "breakpoints": true
     }
   ]
 }
