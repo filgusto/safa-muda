@@ -1,4 +1,4 @@
-import { eq, or, desc, asc, inArray, sql } from "drizzle-orm";
+import { and, eq, or, desc, asc, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import {
   project,
@@ -115,9 +115,12 @@ export async function podeEditarProjeto(
   if (projeto.ownerId === viewer.id) return true;
 
   const membro = await db.query.projectMember.findFirst({
-    where: eq(projectMember.projectId, projectId),
+    where: and(
+      eq(projectMember.projectId, projectId),
+      eq(projectMember.userId, viewer.id),
+    ),
   });
-  return membro?.userId === viewer.id && membro.papel !== "viewer";
+  return !!membro && membro.papel !== "viewer";
 }
 
 export async function listarPlantios(
