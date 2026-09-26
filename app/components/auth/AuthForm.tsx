@@ -1,5 +1,6 @@
 "use client";
 
+import { destinoSeguro } from "@/lib/destino-seguro.ts";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -43,12 +44,7 @@ export function AuthForm({ modo }: { modo: Modo }) {
   >(null);
 
   function entrarEIr() {
-    // Só caminhos internos: aceitar URL absoluta aqui abriria redirecionamento
-    // aberto, com a nossa página de login servindo de trampolim.
-    const destino = searchParams.get("destino");
-    const seguro =
-      destino !== null && destino.startsWith("/") && !destino.startsWith("//");
-    router.push(seguro ? destino : "/");
+    router.push(destinoSeguro(searchParams.get("destino")));
     router.refresh();
   }
 
@@ -100,6 +96,12 @@ export function AuthForm({ modo }: { modo: Modo }) {
 
     setEnviando(false);
     if (resultado.error) {
+      // Conta que nunca confirmou o e-mail: o servidor já mandou um código
+      // novo (sendOnSignIn), então vai direto para a etapa do código.
+      if (resultado.error.code === "EMAIL_NOT_VERIFIED") {
+        setAguardandoCodigoPara(email);
+        return;
+      }
       setErro(mensagemDeErro(resultado.error));
       return;
     }

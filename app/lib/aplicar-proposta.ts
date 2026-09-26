@@ -42,9 +42,13 @@ export async function aplicarPropostaAprovada(
   nota?: string,
 ): Promise<ResultadoDaAplicacao> {
   return db.transaction(async (tx): Promise<ResultadoDaAplicacao> => {
-    const proposta = await tx.query.changeProposal.findFirst({
-      where: eq(changeProposal.id, propostaId),
-    });
+    // FOR UPDATE: duas aprovações simultâneas da mesma proposta esperam uma
+    // pela outra, e a segunda enxerga o status já mudado.
+    const [proposta] = await tx
+      .select()
+      .from(changeProposal)
+      .where(eq(changeProposal.id, propostaId))
+      .for("update");
     if (!proposta) return { ok: false, erro: "Proposta não encontrada." };
     if (proposta.status !== "pendente") {
       return { ok: false, erro: "Esta proposta já foi avaliada." };

@@ -269,6 +269,12 @@ function PainelDeEntrada({
 
     setEmAndamento(null);
     if (error) {
+      // Conta que nunca confirmou o e-mail: o servidor já mandou um código
+      // novo (sendOnSignIn), então vai direto para a etapa do código.
+      if (error.code === "EMAIL_NOT_VERIFIED") {
+        setAguardandoCodigoPara(email);
+        return;
+      }
       setErro(mensagemDeErro(error));
       return;
     }

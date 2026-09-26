@@ -74,6 +74,8 @@ const MENSAGENS: Record<string, string> = {
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Já existe uma conta com esse e-mail.",
   EMAIL_IS_THE_SAME: "Este já é o e-mail da sua conta.",
   TERMS_NOT_ACCEPTED: "Aceite os Termos de Uso e a Política de Privacidade.",
+  INVALID_NAME: "Nome inválido.",
+  EMAIL_NOT_VERIFIED: "Confirme seu e-mail para entrar.",
   INVALID_OTP: "Código incorreto.",
   OTP_EXPIRED: "Este código expirou. Peça um novo.",
   TOO_MANY_ATTEMPTS: "Muitas tentativas com código errado. Peça um novo.",

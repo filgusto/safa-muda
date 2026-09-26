@@ -27,13 +27,22 @@ type Auth = ReturnType<typeof criarAuth>;
 let instancia: Auth | undefined;
 
 function criarAuth() {
-  const secret = process.env.AUTH_SECRET;
+  const emDesenvolvimento =
+    process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  const secret =
+    process.env.AUTH_SECRET ||
+    (emDesenvolvimento ? "dev-secret-nao-use-em-producao" : undefined);
 
-  if (!secret && process.env.NODE_ENV === "production") {
+  // Qualquer ambiente que não seja dev/test (produção, staging, NODE_ENV
+  // esquecido) exige um segredo de verdade: um fallback público permitiria
+  // forjar sessões.
+  if (!secret || (!emDesenvolvimento && secret.length < 32)) {
     throw new Error(
-      "AUTH_SECRET é obrigatória em produção. Gere com `openssl rand -base64 32`.",
+      "AUTH_SECRET é obrigatória, com pelo menos 32 caracteres. Gere com `openssl rand -base64 32`.",
     );
   }
+
+  const baseURL = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -45,18 +54,42 @@ function criarAuth() {
         verification: schema.verification,
       },
     }),
-    secret: secret ?? "dev-secret-nao-use-em-producao",
-    baseURL: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000",
+    secret,
+    baseURL,
+    trustedOrigins: [baseURL],
+
+    advanced: {
+      useSecureCookies: baseURL.startsWith("https://"),
+      ipAddress: {
+        // Atrás do Traefik o IP do cliente vem em X-Forwarded-For; só se
+        // confia nos saltos das redes privadas do Docker, para que um
+        // cabeçalho forjado pelo cliente não escolha o IP contado no limite.
+        trustedProxies: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+      },
+    },
+
+    // Limite por IP, em memória (uma instância do web). Ligado explicitamente:
+    // o padrão do Better Auth só liga em NODE_ENV=production.
+    rateLimit: {
+      enabled: true,
+      window: 60,
+      max: 100,
+      customRules: {
+        "/sign-in/email": { window: 60, max: 10 },
+        "/sign-up/email": { window: 60, max: 5 },
+      },
+    },
 
     emailAndPassword: {
       enabled: true,
       // A conta só entra sozinha depois do código de confirmação (ver o
       // plugin email-otp abaixo) — por isso o cadastro não abre sessão.
-      // `requireEmailVerification` fica false de propósito: aquela flag
-      // também bloquearia o LOGIN de quem nunca confirmou (inclusive contas
-      // já existentes, criadas antes deste recurso), o que não foi pedido.
+      // `requireEmailVerification` recusa o login de quem nunca provou ter o
+      // e-mail (sem isso, dava para abrir conta com o e-mail de outra pessoa
+      // e escrever em nome dela). Quem cai aqui recebe um código novo
+      // (`sendOnSignIn`) e a interface leva para a etapa do código.
       autoSignIn: false,
-      requireEmailVerification: false,
+      requireEmailVerification: true,
       minPasswordLength: 8,
       // Redefinir a senha encerra as outras sessões: se alguém tinha a senha
       // antiga, perde o acesso junto.
@@ -69,6 +102,7 @@ function criarAuth() {
     // autoSignInAfterVerification é o que abre a sessão quando o código bate.
     emailVerification: {
       sendOnSignUp: true,
+      sendOnSignIn: true,
       autoSignInAfterVerification: true,
     },
 
@@ -122,9 +156,33 @@ function criarAuth() {
           // (app/actions/conta.ts) — nunca por um updateUser do navegador.
           // O Better Auth mescla o retorno com os dados originais, então
           // omitir a chave não basta: ela precisa voltar como `undefined`.
-          before: async () => ({
-            data: { termosVersao: undefined, termosAceitosEm: undefined },
-          }),
+          //
+          // O mesmo vale para a foto: `image` só muda por definirFotoDePerfil
+          // e removerFotoDePerfil (que conferem o dono do arquivo). Um
+          // updateUser do navegador não pode apontá-la para uma URL externa
+          // (rastreamento) nem para o arquivo de outra pessoa. O nome é o
+          // único campo do perfil editável por aqui, com teto de tamanho.
+          before: async (dados) => {
+            const nome = (dados as { name?: unknown }).name;
+            if (
+              nome !== undefined &&
+              (typeof nome !== "string" ||
+                nome.trim().length === 0 ||
+                nome.length > 100)
+            ) {
+              throw new APIError("BAD_REQUEST", {
+                message: "Nome inválido.",
+                code: "INVALID_NAME",
+              });
+            }
+            return {
+              data: {
+                termosVersao: undefined,
+                termosAceitosEm: undefined,
+                image: undefined,
+              },
+            };
+          },
         },
       },
     },
@@ -162,7 +220,11 @@ function criarAuth() {
             await enviarCodigoDeTrocaDeEmail(email, otp);
             return;
           }
-          console.error(`Pedido de OTP do tipo "${type}" sem tratamento.`);
+          // Entrar sem senha não existe aqui: não gera código utilizável.
+          throw new APIError("BAD_REQUEST", {
+            message: "Operação não disponível.",
+            code: "OTP_TYPE_NOT_SUPPORTED",
+          });
         },
       }),
       // Precisa ser o último plugin: adapta o set-cookie ao runtime do Next.
