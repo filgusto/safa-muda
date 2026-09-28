@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,6 +25,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover.tsx";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet.tsx";
 import {
   signIn,
   signUp,
@@ -41,6 +53,24 @@ function ehPaginaRestrita(pathname: string) {
   return PAGINAS_RESTRITAS.some((re) => re.test(pathname));
 }
 
+const CONSULTA_DE_CELULAR = "(max-width: 639px)";
+
+/**
+ * `true` abaixo do breakpoint `sm`. No servidor e na hidratação vale `false`,
+ * e o menu começa fechado, então a troca não causa divergência visível.
+ */
+function useEhCelular() {
+  return useSyncExternalStore(
+    (aviso) => {
+      const consulta = window.matchMedia(CONSULTA_DE_CELULAR);
+      consulta.addEventListener("change", aviso);
+      return () => consulta.removeEventListener("change", aviso);
+    },
+    () => window.matchMedia(CONSULTA_DE_CELULAR).matches,
+    () => false,
+  );
+}
+
 /**
  * Botão-ícone do usuário na barra superior, com o menu suspenso.
  *
@@ -48,9 +78,13 @@ function ehPaginaRestrita(pathname: string) {
  * TODA página dinâmica — inclusive as 442 fichas de espécie, que dependem de
  * ISR para serem indexáveis. Aqui o layout continua estático e só este pedaço
  * consulta a sessão (useSessaoHidratada), depois da hidratação.
+ *
+ * No desktop o menu é um balão preso ao botão; no celular, uma barra lateral
+ * que desliza da direita.
  */
 export function MenuDoUsuario() {
   const [aberto, setAberto] = useState(false);
+  const celular = useEhCelular();
   const { data: sessao, isPending } = useSessaoHidratada();
   // O Better Auth refaz a checagem de sessão depois de várias chamadas (ver
   // atomListeners do client) — inclusive /sign-up/email, que não loga
@@ -69,50 +103,69 @@ export function MenuDoUsuario() {
     if (!isPending) setCarregouUmaVez(true);
   }, [isPending]);
 
+  const classeDoBotao = `flex h-10 w-10 items-center justify-center rounded-full sm:h-6 sm:w-6 transition-colors ${
+    sessao
+      ? "bg-primary/15 text-xs font-semibold text-primary hover:bg-primary/25"
+      : "rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+  }`;
+  const rotuloDoBotao = sessao ? `Conta de ${sessao.user.name}` : "Entrar";
+  const icone = sessao ? (
+    <AvatarDoUsuario
+      nome={sessao.user.name}
+      imagem={sessao.user.image}
+      className="size-6 text-xs"
+    />
+  ) : (
+    <User className="h-4 w-4" />
+  );
+
+  const conteudo = !carregouUmaVez ? (
+    <div className="flex justify-center py-6 text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+    </div>
+  ) : sessao ? (
+    <PainelLogado
+      id={sessao.user.id}
+      nome={sessao.user.name}
+      email={sessao.user.email}
+      imagem={sessao.user.image}
+      equipe={sessao.user.role === "moderator" || sessao.user.role === "admin"}
+      fechar={() => setAberto(false)}
+    />
+  ) : (
+    <PainelDeEntrada
+      etapa={etapaDeEntrada}
+      mudarEtapa={setEtapaDeEntrada}
+      fechar={() => setAberto(false)}
+    />
+  );
+
+  if (celular) {
+    return (
+      <Sheet open={aberto} onOpenChange={setAberto}>
+        <SheetTrigger aria-label={rotuloDoBotao} className={classeDoBotao}>
+          {icone}
+        </SheetTrigger>
+        <SheetContent
+          side="right"
+          aria-describedby={undefined}
+          className="w-[85vw] max-w-sm overflow-y-auto pt-12"
+        >
+          <SheetTitle className="sr-only">{rotuloDoBotao}</SheetTitle>
+          {conteudo}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
-      <PopoverTrigger
-        aria-label={sessao ? `Conta de ${sessao.user.name}` : "Entrar"}
-        className={`flex h-10 w-10 items-center justify-center rounded-full sm:h-6 sm:w-6 transition-colors ${
-          sessao
-            ? "bg-primary/15 text-xs font-semibold text-primary hover:bg-primary/25"
-            : "rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-        }`}
-      >
-        {sessao ? (
-          <AvatarDoUsuario
-            nome={sessao.user.name}
-            imagem={sessao.user.image}
-            className="size-6 text-xs"
-          />
-        ) : (
-          <User className="h-4 w-4" />
-        )}
+      <PopoverTrigger aria-label={rotuloDoBotao} className={classeDoBotao}>
+        {icone}
       </PopoverTrigger>
 
       <PopoverContent align="end" sideOffset={10} className="w-72">
-        {!carregouUmaVez ? (
-          <div className="flex justify-center py-6 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </div>
-        ) : sessao ? (
-          <PainelLogado
-            id={sessao.user.id}
-            nome={sessao.user.name}
-            email={sessao.user.email}
-            imagem={sessao.user.image}
-            equipe={
-              sessao.user.role === "moderator" || sessao.user.role === "admin"
-            }
-            fechar={() => setAberto(false)}
-          />
-        ) : (
-          <PainelDeEntrada
-            etapa={etapaDeEntrada}
-            mudarEtapa={setEtapaDeEntrada}
-            fechar={() => setAberto(false)}
-          />
-        )}
+        {conteudo}
       </PopoverContent>
     </Popover>
   );
