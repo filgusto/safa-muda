@@ -7,6 +7,7 @@ import { db } from "@/db/index.ts";
 import * as schema from "@/db/schema/index.ts";
 import { VERSAO_DOS_TERMOS } from "./termos.ts";
 import { apagarFotoDePerfil } from "./foto-de-perfil.ts";
+import { mascararEmail, registrarErro } from "./observabilidade.ts";
 import {
   enviarEmail,
   moldeDeEmail,
@@ -72,8 +73,12 @@ function criarAuth() {
     // o padrão do Better Auth só liga em NODE_ENV=production.
     rateLimit: {
       enabled: true,
+      // Cobre tudo que não tem regra própria abaixo — inclusive
+      // /get-session, chamado a cada navegação. Várias pessoas atrás do
+      // mesmo NAT/escritório somam requisições rápido; 100/min era curto
+      // demais mesmo para uso normal.
       window: 60,
-      max: 100,
+      max: 300,
       customRules: {
         "/sign-in/email": { window: 60, max: 10 },
         // Generoso o bastante para não travar o próprio teste de ponta a
@@ -273,7 +278,11 @@ async function enviarCodigoDeRecuperacao(email: string, codigo: string) {
       ),
     });
   } catch (erro) {
-    console.error(`Falha ao enviar código de recuperação para ${email}:`, erro);
+    registrarErro(
+      "email.recuperacao_falhou",
+      { para: mascararEmail(email) },
+      erro,
+    );
   }
 }
 
@@ -307,7 +316,11 @@ async function enviarCodigoDeConfirmacao(email: string, codigo: string) {
       ),
     });
   } catch (erro) {
-    console.error(`Falha ao enviar código de confirmação para ${email}:`, erro);
+    registrarErro(
+      "email.confirmacao_falhou",
+      { para: mascararEmail(email) },
+      erro,
+    );
   }
 }
 
@@ -340,10 +353,7 @@ async function enviarCodigoDeTrocaDeEmail(email: string, codigo: string) {
       ),
     });
   } catch (erro) {
-    console.error(
-      `Falha ao enviar código de troca de e-mail para ${email}:`,
-      erro,
-    );
+    registrarErro("email.troca_falhou", { para: mascararEmail(email) }, erro);
   }
 }
 

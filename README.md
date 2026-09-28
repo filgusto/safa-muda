@@ -186,6 +186,29 @@ E2E_BASE_URL=http://localhost:3000 npm run e2e
 > `S3_PUBLIC_DOMAIN` é necessário porque o upload é feito pelo navegador direto
 > no MinIO, via URL pré-assinada — e a assinatura SigV4 cobre o cabeçalho Host.
 
+### Observabilidade
+
+- **`/api/health`** — checagem rasa (só o banco), usada pelo healthcheck do
+  Docker e do Traefik a cada 30s. **`/api/health?deep=1`** também confere o
+  MinIO; aponte um monitor externo (UptimeRobot, Better Uptime, um cron com
+  `curl` e alerta) para essa URL, num intervalo de minutos — não a use no
+  healthcheck do load balancer, que roda com frequência demais para isso.
+- **`instrumentation.ts`** recusa a partida em produção com variável obrigatória
+  faltando ou com valor de exemplo (ver `lib/ambiente.ts`) — falha rápido, em
+  vez de subir e falhar aos poucos no primeiro cadastro ou upload.
+- **Logs** — `docker compose logs -f web` (rotacionados, `json-file`, ver
+  `docker-compose.prod.yml`). Os poucos pontos que registram falha fora do
+  fluxo normal (envio de e-mail) usam `lib/observabilidade.ts`
+  (`registrarErro`), em JSON e com o e-mail mascarado — não é um serviço de
+  rastreamento de erros, só um log estruturado.
+- **Rastreamento de erros (opcional)** — o projeto não inclui Sentry/OTel
+  hoje, porque isso exige uma conta e um DSN que só quem opera o deploy tem.
+  Para ligar depois: crie um projeto Next.js num desses serviços, siga o
+  assistente deles (`npx @sentry/wizard@latest -i nextjs`, por exemplo) e
+  passe a chamar `registrarErro` também de dentro dele — os pontos de
+  chamada já existem, então a mudança fica isolada em
+  `lib/observabilidade.ts`.
+
 ## Como o catálogo evolui
 
 O catálogo não é editável direto. Toda mudança passa por uma proposta:
