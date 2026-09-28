@@ -15,6 +15,8 @@ async function criarProjeto(page: Page, nome: string) {
   await expect(page).toHaveURL(/\/projetos\/[0-9a-f-]{36}/, {
     timeout: 15_000,
   });
+  // A gaveta do catálogo começa fechada.
+  await page.getByRole("button", { name: "Plantas" }).click();
 }
 
 // Tablet: sem mouse, com toque. O drag-and-drop nativo não existe aqui.
@@ -36,9 +38,11 @@ test.describe("arraste por toque", () => {
     await criarProjeto(page, "Toque");
 
     await page.getByPlaceholder("Buscar espécie…").fill("Banana Nanica");
-    const alca = page.getByRole("button", {
-      name: /Arrastar Banana Nanica/,
-    });
+    // O card inteiro é a alça de arraste (ver CardArrastavel em
+    // PainelDoCatalogo.tsx) — não há um botão "Arrastar" separado.
+    const alca = page
+      .getByRole("listitem")
+      .filter({ hasText: "Banana Nanica" });
     await expect(alca).toBeVisible({ timeout: 10_000 });
 
     // A faixa "Alto" é o estrato da Banana Nanica no catálogo.
