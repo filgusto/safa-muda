@@ -76,7 +76,10 @@ function criarAuth() {
       max: 100,
       customRules: {
         "/sign-in/email": { window: 60, max: 10 },
-        "/sign-up/email": { window: 60, max: 5 },
+        // Generoso o bastante para não travar o próprio teste de ponta a
+        // ponta (várias contas criadas em paralelo, mesmo IP) sem abrir mão
+        // de barrar um script disparando centenas de cadastros por minuto.
+        "/sign-up/email": { window: 60, max: 20 },
       },
     },
 
@@ -194,6 +197,12 @@ function criarAuth() {
 
     plugins: [
       emailOTP({
+        // O padrão do plugin é 3 requisições por minuto **por IP, por
+        // endpoint** — aperta demais quem está atrás do mesmo NAT/escritório:
+        // a terceira pessoa a confirmar a própria conta em menos de um
+        // minuto já cairia no limite. O bloqueio por tentativa errada
+        // (`allowedAttempts` abaixo) já protege contra força bruta do código.
+        rateLimit: { window: 60, max: 15 },
         // Sem isto o plugin manda o código só em fluxos próprios dele
         // (entrar sem senha, trocar e-mail); com isto, ele passa a responder
         // também pelo emailVerification.sendOnSignUp acima.

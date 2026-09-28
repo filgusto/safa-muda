@@ -29,13 +29,18 @@ test("cadastra, cria projeto e registra no diário", async ({ page }) => {
     page.getByRole("heading", { name: "Consórcio E2E" }),
   ).toBeVisible();
 
-  // As três vistas do mesmo desenho.
-  await expect(page.getByRole("button", { name: /Tempo/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Espaço/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Diário/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Análise/ })).toBeVisible();
+  // As três vistas do mesmo desenho — escopado a <nav>, porque a barra de
+  // opções da própria timeline (Tempo relativo/absoluto) também tem um botão
+  // cujo nome contém "Tempo".
+  const abas = page.getByRole("navigation").getByRole("button");
+  await expect(abas.filter({ hasText: "Tempo" })).toBeVisible();
+  await expect(abas.filter({ hasText: "Espaço" })).toBeVisible();
+  await expect(abas.filter({ hasText: "Diário" })).toBeVisible();
+  await expect(abas.filter({ hasText: "Análise" })).toBeVisible();
 
   // ── Timeline ───────────────────────────────────────────────────────────
+  // A gaveta do catálogo começa fechada.
+  await page.getByRole("button", { name: "Plantas" }).click();
   // O catálogo acoplado carrega da API, não do servidor.
   await expect(page.getByPlaceholder("Buscar espécie…")).toBeVisible();
   await page.getByPlaceholder("Buscar espécie…").fill("Banana Nanica");
@@ -44,11 +49,11 @@ test("cadastra, cria projeto e registra no diário", async ({ page }) => {
   });
 
   // ── Análise ────────────────────────────────────────────────────────────
-  await page.getByRole("button", { name: /Análise/ }).click();
+  await abas.filter({ hasText: "Análise" }).click();
   await expect(page.getByText(/Nada a analisar ainda/)).toBeVisible();
 
   // ── Diário ─────────────────────────────────────────────────────────────
-  await page.getByRole("button", { name: /Diário/ }).click();
+  await abas.filter({ hasText: "Diário" }).click();
   await expect(page.getByText(/Nada registrado ainda/)).toBeVisible();
 
   await page.getByRole("button", { name: "Registrar" }).click();
