@@ -72,17 +72,14 @@ services:
       - |
         mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
         mc mb --ignore-existing minio/safa-muda-media &&
-        cat > /tmp/leitura-publica.json <<'JSON' &&
-        {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::safa-muda-media/*"]}]}
-        JSON
-        mc anonymous set-json /tmp/leitura-publica.json minio/safa-muda-media &&
+        mc anonymous set none minio/safa-muda-media &&
         cat > /tmp/politica-do-app.json <<'JSON' &&
         {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:PutObject","s3:GetObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::safa-muda-media/*"]}]}
         JSON
         mc admin policy create minio safa-muda-app /tmp/politica-do-app.json &&
         (mc admin user add minio $$MINIO_APP_USER $$MINIO_APP_PASSWORD || true) &&
         mc admin policy attach minio safa-muda-app --user $$MINIO_APP_USER &&
-        echo 'Bucket safa-muda-media ready (leitura pública só de objetos; usuário do app sem listagem).'
+        echo 'Bucket safa-muda-media ready (privado — a leitura passa por app/media/[...key]/route.ts).'
     restart: "no"
 
   # ── PostgreSQL ────────────────────────────────────────────────────────────────
@@ -216,7 +213,7 @@ services:
       - "traefik.http.middlewares.app-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       - "traefik.http.middlewares.app-headers.headers.permissionsPolicy=camera=(), microphone=(), geolocation=()"
       - "traefik.http.middlewares.app-headers.headers.customResponseHeaders.X-Permitted-Cross-Domain-Policies=none"
-      - "traefik.http.middlewares.app-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}; worker-src blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+      - "traefik.http.middlewares.app-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}; worker-src blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
       - "traefik.http.routers.app.middlewares=app-headers"
 
 # ── Named volumes ─────────────────────────────────────────────────────────────

@@ -1,4 +1,8 @@
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { randomUUID } from "node:crypto";
 import { LIMITE_DE_UPLOAD_BYTES } from "./limite-de-upload.ts";
@@ -10,8 +14,9 @@ import { LIMITE_DE_UPLOAD_BYTES } from "./limite-de-upload.ts";
  * arquivo não passa pelo servidor Next. Isso evita segurar imagens de campo
  * (que são grandes e vêm de celular) na memória do processo.
  *
- * A leitura é pública via /media/<key>, reescrito para o bucket pelo Next
- * (ver next.config.mjs).
+ * O bucket é privado. A leitura passa por app/media/[...key]/route.ts, que
+ * confere a visibilidade (lib/visibilidade-de-midia.ts) e devolve os bytes —
+ * ver o comentário ali sobre por que não é um rewrite direto ao bucket.
  */
 
 export const BUCKET = process.env.S3_BUCKET ?? "safa-muda-media";
@@ -117,7 +122,26 @@ export async function removerObjeto(key: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }
 
-/** URL pública de leitura, servida pelo próprio domínio da aplicação. */
+/** Lê o objeto inteiro — os arquivos aqui nunca passam de 1 MB. */
+export async function lerObjeto(
+  key: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  try {
+    const objeto = await s3.send(
+      new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    );
+    if (!objeto.Body) return null;
+    return {
+      bytes: await objeto.Body.transformToByteArray(),
+      contentType: objeto.ContentType ?? "application/octet-stream",
+    };
+  } catch (erro) {
+    if ((erro as { name?: string }).name === "NoSuchKey") return null;
+    throw erro;
+  }
+}
+
+/** URL de leitura, servida pelo próprio domínio da aplicação. */
 export function urlPublica(key: string): string {
   return `/media/${key}`;
 }
