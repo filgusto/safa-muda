@@ -52,11 +52,8 @@ services:
       - |
         mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
         mc mb --ignore-existing minio/safa-muda-media &&
-        cat > /tmp/leitura-publica.json <<'JSON' &&
-        {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::safa-muda-media/*"]}]}
-        JSON
-        mc anonymous set-json /tmp/leitura-publica.json minio/safa-muda-media &&
-        echo 'Bucket safa-muda-media ready.'
+        mc anonymous set none minio/safa-muda-media &&
+        echo 'Bucket safa-muda-media ready (privado — a leitura passa por app/media/[...key]/route.ts).'
     restart: "no"
 
   # ── Mailpit (SMTP de desenvolvimento) ─────────────────────────────────────────

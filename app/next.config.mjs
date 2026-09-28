@@ -24,7 +24,7 @@ const nextConfig = {
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https: blob:",
+            "img-src 'self' data: blob:",
             "font-src 'self' data:",
             `connect-src 'self' ${s3Origin}`.trim(),
             "worker-src blob:",
@@ -50,19 +50,6 @@ const nextConfig = {
         ]
     },
 
-    // Proxy /media/* → MinIO so media URLs work in dev and production.
-    // Traefik passes all traffic through to the web service, so Next.js
-    // handles this rewrite directly in production.
-    async rewrites() {
-        const s3Endpoint = process.env.S3_ENDPOINT || 'http://minio:9000'
-        const s3Bucket = process.env.S3_BUCKET || 'safa-muda-media'
-        return [
-            {
-                source: '/media/:path*',
-                destination: `${s3Endpoint}/${s3Bucket}/:path*`,
-            },
-        ]
-    },
 };
 
 export default nextConfig;
