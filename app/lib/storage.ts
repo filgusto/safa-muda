@@ -2,6 +2,7 @@ import {
   S3Client,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
 } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { randomUUID } from "node:crypto";
@@ -144,4 +145,14 @@ export async function lerObjeto(
 /** URL de leitura, servida pelo próprio domínio da aplicação. */
 export function urlPublica(key: string): string {
   return `/media/${key}`;
+}
+
+/** Verificação de saúde: o bucket responde? Usado por /api/health?deep=1. */
+export async function verificarArmazenamento(): Promise<boolean> {
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket: BUCKET }));
+    return true;
+  } catch {
+    return false;
+  }
 }

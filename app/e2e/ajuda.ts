@@ -45,6 +45,12 @@ export async function cadastrar(page: Page, nome: string): Promise<string> {
     .fill(await codigoDoEmail(email));
   await page.getByRole("button", { name: /Confirmar/ }).click();
 
-  await expect(page).toHaveURL("/", { timeout: 15_000 });
+  // O destino pós-login é "/", mas a home redireciona (server-side) direto
+  // para "/safdex" (ver app/(frontend)/page.tsx) — esperar pela URL exata
+  // corre risco de nunca pegar esse instante. O sinal estável de que a sessão
+  // abriu é o próprio menu de conta, que só aparece autenticado.
+  await expect(
+    page.getByRole("button", { name: `Conta de ${nome}` }),
+  ).toBeVisible({ timeout: 15_000 });
   return email;
 }
