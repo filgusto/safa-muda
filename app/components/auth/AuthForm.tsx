@@ -33,9 +33,14 @@ function mensagemDeValidacao(input: HTMLInputElement): string | null {
 export function AuthForm({ modo }: { modo: Modo }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(
+    searchParams.get("erro") === "google"
+      ? "Não foi possível entrar com o Google. Tente de novo."
+      : null,
+  );
   const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
+  const [entrandoComGoogle, setEntrandoComGoogle] = useState(false);
   // Só usado no cadastro: a sessão não abre mais no signUp (ver
   // emailAndPassword.autoSignIn em lib/auth.ts), então essa é a segunda
   // etapa, com o código que chegou por e-mail.
@@ -46,6 +51,20 @@ export function AuthForm({ modo }: { modo: Modo }) {
   function entrarEIr() {
     router.push(destinoSeguro(searchParams.get("destino")));
     router.refresh();
+  }
+
+  async function handleGoogle() {
+    setErro(null);
+    setEntrandoComGoogle(true);
+    // Cadastro novo via Google não passa pelo formulário de termos: o botão
+    // manda para /conta, que já mostra o aviso de aceite pendente
+    // (LinhaDosTermos, em PerfilOpcional.tsx) para quem ainda não aceitou.
+    await signIn.social({
+      provider: "google",
+      callbackURL: destinoSeguro(searchParams.get("destino")),
+      newUserCallbackURL: "/conta",
+      errorCallbackURL: "/entrar?erro=google",
+    });
   }
 
   async function handleSubmit(evento: React.FormEvent<HTMLFormElement>) {
@@ -125,94 +144,120 @@ export function AuthForm({ modo }: { modo: Modo }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
-      {modo === "cadastro" && (
-        <Campo
-          id="name"
-          name="name"
-          label="Nome"
-          type="text"
-          autoComplete="name"
-          required
-          erro={errosDeCampo.name}
-        />
-      )}
-
-      <Campo
-        id="email"
-        name="email"
-        label="E-mail"
-        type="email"
-        autoComplete="email"
-        required
-        erro={errosDeCampo.email}
-      />
-
-      <Campo
-        id="password"
-        name="password"
-        label="Senha"
-        type="password"
-        autoComplete={modo === "cadastro" ? "new-password" : "current-password"}
-        required
-        minLength={8}
-        hint={modo === "cadastro" ? "Mínimo de 8 caracteres." : undefined}
-        erro={errosDeCampo.password}
-      />
-
-      {modo === "cadastro" && (
-        <Campo
-          id="password-confirmation"
-          name="password-confirmation"
-          label="Confirme sua senha"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          erro={errosDeCampo["password-confirmation"]}
-        />
-      )}
-
-      {modo === "cadastro" && (
-        <AceiteDosTermos id="termos" erro={errosDeCampo.termos} />
-      )}
-
-      {erro && (
-        <p
-          role="alert"
-          className="rounded-lg border-l-4 border-red-500/30 bg-red-500/5 p-3 text-sm text-red-900 dark:text-red-200"
-        >
-          {erro}
-        </p>
-      )}
-
+    <div className="space-y-5">
       <button
-        type="submit"
-        disabled={enviando}
-        className="inline-flex w-full items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        type="button"
+        onClick={handleGoogle}
+        disabled={entrandoComGoogle}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-transparent px-8 py-2.5 text-sm font-medium text-foreground transition-colors duration-240 hover:bg-muted active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
       >
-        {enviando && <Loader2 size={16} className="mr-2 animate-spin" />}
-        {modo === "cadastro" ? "Criar conta" : "Entrar"}
+        {entrandoComGoogle ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <GoogleIcon />
+        )}
+        {modo === "cadastro"
+          ? "Criar conta com o Google"
+          : "Entrar com o Google"}
       </button>
 
-      <p className="text-center text-sm text-muted-foreground">
-        {modo === "cadastro" ? (
-          <>
-            Já tem conta?{" "}
-            <Link href="/entrar" className="bio-link">
-              Entrar
-            </Link>
-          </>
-        ) : (
-          <>
-            Ainda não tem conta?{" "}
-            <Link href="/cadastro" className="bio-link">
-              Criar conta
-            </Link>
-          </>
+      <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
+        <div className="h-px flex-1 bg-border" />
+        ou
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        {modo === "cadastro" && (
+          <Campo
+            id="name"
+            name="name"
+            label="Nome"
+            type="text"
+            autoComplete="name"
+            required
+            erro={errosDeCampo.name}
+          />
         )}
-      </p>
-    </form>
+
+        <Campo
+          id="email"
+          name="email"
+          label="E-mail"
+          type="email"
+          autoComplete="email"
+          required
+          erro={errosDeCampo.email}
+        />
+
+        <Campo
+          id="password"
+          name="password"
+          label="Senha"
+          type="password"
+          autoComplete={
+            modo === "cadastro" ? "new-password" : "current-password"
+          }
+          required
+          minLength={8}
+          hint={modo === "cadastro" ? "Mínimo de 8 caracteres." : undefined}
+          erro={errosDeCampo.password}
+        />
+
+        {modo === "cadastro" && (
+          <Campo
+            id="password-confirmation"
+            name="password-confirmation"
+            label="Confirme sua senha"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            erro={errosDeCampo["password-confirmation"]}
+          />
+        )}
+
+        {modo === "cadastro" && (
+          <AceiteDosTermos id="termos" erro={errosDeCampo.termos} />
+        )}
+
+        {erro && (
+          <p
+            role="alert"
+            className="rounded-lg border-l-4 border-red-500/30 bg-red-500/5 p-3 text-sm text-red-900 dark:text-red-200"
+          >
+            {erro}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={enviando}
+          className="inline-flex w-full items-center justify-center rounded-md border border-primary bg-transparent px-8 py-2.5 text-sm font-medium text-primary transition-all duration-240 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_0_rgba(63,175,92,0.3)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        >
+          {enviando && <Loader2 size={16} className="mr-2 animate-spin" />}
+          {modo === "cadastro" ? "Criar conta" : "Entrar"}
+        </button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          {modo === "cadastro" ? (
+            <>
+              Já tem conta?{" "}
+              <Link href="/entrar" className="bio-link">
+                Entrar
+              </Link>
+            </>
+          ) : (
+            <>
+              Ainda não tem conta?{" "}
+              <Link href="/cadastro" className="bio-link">
+                Criar conta
+              </Link>
+            </>
+          )}
+        </p>
+      </form>
+    </div>
   );
 }
 
@@ -338,6 +383,29 @@ function EtapaDeCodigo({
         </button>
       </div>
     </form>
+  );
+}
+
+export function GoogleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.26v3.1A11.998 11.998 0 0 0 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28v-3.1H1.26A12 12 0 0 0 0 12c0 1.94.46 3.77 1.26 5.38l4-3.1Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.77c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.62l4 3.1C6.22 6.88 8.87 4.77 12 4.77Z"
+      />
+    </svg>
   );
 }
 

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AceiteDosTermos } from "@/components/auth/AceiteDosTermos.tsx";
 import { AvatarDoUsuario } from "@/components/auth/AvatarDoUsuario.tsx";
+import { GoogleIcon } from "@/components/auth/AuthForm.tsx";
 import { VERSAO_DOS_TERMOS } from "@/lib/termos.ts";
 import {
   Popover,
@@ -254,7 +255,22 @@ function PainelDeEntrada({
   fechar: () => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { modo, aguardandoCodigoPara, recuperandoEmail } = etapa;
+  const [entrandoComGoogle, setEntrandoComGoogle] = useState(false);
+
+  async function entrarComGoogle() {
+    setEntrandoComGoogle(true);
+    // Redireciona a página inteira para o Google e de volta — o estado do
+    // menu não sobrevive a isso, por isso não há tratamento de erro aqui:
+    // uma falha volta por /entrar?erro=google, que já mostra o aviso.
+    await signIn.social({
+      provider: "google",
+      callbackURL: pathname,
+      newUserCallbackURL: "/conta",
+      errorCallbackURL: "/entrar?erro=google",
+    });
+  }
   // Entrar ou sair de uma etapa de código começa (ou descarta) o que foi
   // digitado nela.
   const setAguardandoCodigoPara = (email: string | null) =>
@@ -408,165 +424,190 @@ function PainelDeEntrada({
   const cadastrando = modo === "cadastrar";
 
   return (
-    <form onSubmit={enviar} noValidate className="space-y-3">
-      {cadastrando ? (
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Criar conta</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            O catálogo é público. A conta serve para propor edições e criar seus
-            projetos de plantio.
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm font-medium text-foreground">
-          Você não está logado
-        </p>
-      )}
-
-      {cadastrando && (
-        <div>
-          <label htmlFor="menu-nome" className={CLASSE_DO_ROTULO}>
-            Nome
-          </label>
-          <input
-            id="menu-nome"
-            name="name"
-            type="text"
-            autoComplete="name"
-            required
-            autoFocus
-            value={nome}
-            onChange={(evento) => setNome(evento.target.value)}
-            className={CLASSE_DO_CAMPO}
-          />
-        </div>
-      )}
-
-      <div>
-        <label htmlFor="menu-email" className={CLASSE_DO_ROTULO}>
-          E-mail
-        </label>
-        <input
-          id="menu-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(evento) => setEmail(evento.target.value)}
-          className={CLASSE_DO_CAMPO}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="menu-senha" className={CLASSE_DO_ROTULO}>
-          Senha
-        </label>
-        <input
-          id="menu-senha"
-          name="password"
-          type="password"
-          autoComplete={cadastrando ? "new-password" : "current-password"}
-          required
-          minLength={cadastrando ? 8 : undefined}
-          value={senha}
-          onChange={(evento) => setSenha(evento.target.value)}
-          className={CLASSE_DO_CAMPO}
-        />
-        {cadastrando && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Mínimo de 8 caracteres.
+    <div className="space-y-3">
+      <form onSubmit={enviar} noValidate className="space-y-3">
+        {cadastrando ? (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">Criar conta</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              O catálogo é público. A conta serve para propor edições e criar
+              seus projetos de plantio.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm font-medium text-foreground">
+            Você não está logado
           </p>
         )}
-        {!cadastrando && (
-          <div className="mt-1 text-right">
-            <button
-              type="button"
-              onClick={iniciarRecuperacao}
-              disabled={emAndamento !== null}
-              className="inline-flex items-center text-[11px] text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:pointer-events-none disabled:opacity-50"
-            >
-              {emAndamento === "recuperar" && (
-                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-              )}
-              Esqueceu a senha?
-            </button>
+
+        {cadastrando && (
+          <div>
+            <label htmlFor="menu-nome" className={CLASSE_DO_ROTULO}>
+              Nome
+            </label>
+            <input
+              id="menu-nome"
+              name="name"
+              type="text"
+              autoComplete="name"
+              required
+              autoFocus
+              value={nome}
+              onChange={(evento) => setNome(evento.target.value)}
+              className={CLASSE_DO_CAMPO}
+            />
           </div>
         )}
-      </div>
 
-      {cadastrando && (
         <div>
-          <label htmlFor="menu-confirmacao-senha" className={CLASSE_DO_ROTULO}>
-            Confirme sua senha
+          <label htmlFor="menu-email" className={CLASSE_DO_ROTULO}>
+            E-mail
           </label>
           <input
-            id="menu-confirmacao-senha"
-            name="password-confirmation"
-            type="password"
-            autoComplete="new-password"
+            id="menu-email"
+            name="email"
+            type="email"
+            autoComplete="email"
             required
-            value={confirmacaoDeSenha}
-            onChange={(evento) => setConfirmacaoDeSenha(evento.target.value)}
+            value={email}
+            onChange={(evento) => setEmail(evento.target.value)}
             className={CLASSE_DO_CAMPO}
           />
         </div>
-      )}
 
-      {cadastrando && <AceiteDosTermos id="menu-termos" compacto />}
+        <div>
+          <label htmlFor="menu-senha" className={CLASSE_DO_ROTULO}>
+            Senha
+          </label>
+          <input
+            id="menu-senha"
+            name="password"
+            type="password"
+            autoComplete={cadastrando ? "new-password" : "current-password"}
+            required
+            minLength={cadastrando ? 8 : undefined}
+            value={senha}
+            onChange={(evento) => setSenha(evento.target.value)}
+            className={CLASSE_DO_CAMPO}
+          />
+          {cadastrando && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Mínimo de 8 caracteres.
+            </p>
+          )}
+          {!cadastrando && (
+            <div className="mt-1 text-right">
+              <button
+                type="button"
+                onClick={iniciarRecuperacao}
+                disabled={emAndamento !== null}
+                className="inline-flex items-center text-[11px] text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:pointer-events-none disabled:opacity-50"
+              >
+                {emAndamento === "recuperar" && (
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                )}
+                Esqueceu a senha?
+              </button>
+            </div>
+          )}
+        </div>
 
-      {erro && (
-        <p
-          role="alert"
-          className="rounded-md border-l-4 border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-900 dark:text-red-200"
+        {cadastrando && (
+          <div>
+            <label
+              htmlFor="menu-confirmacao-senha"
+              className={CLASSE_DO_ROTULO}
+            >
+              Confirme sua senha
+            </label>
+            <input
+              id="menu-confirmacao-senha"
+              name="password-confirmation"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={confirmacaoDeSenha}
+              onChange={(evento) => setConfirmacaoDeSenha(evento.target.value)}
+              className={CLASSE_DO_CAMPO}
+            />
+          </div>
+        )}
+
+        {cadastrando && <AceiteDosTermos id="menu-termos" compacto />}
+
+        {erro && (
+          <p
+            role="alert"
+            className="rounded-md border-l-4 border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-900 dark:text-red-200"
+          >
+            {erro}
+          </p>
+        )}
+        {aviso && (
+          <p
+            role="status"
+            className="rounded-md border-l-4 border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-900 dark:text-emerald-200"
+          >
+            {aviso}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={emAndamento !== null}
+          className={CLASSE_DO_BOTAO_PRINCIPAL}
         >
-          {erro}
-        </p>
-      )}
-      {aviso && (
-        <p
-          role="status"
-          className="rounded-md border-l-4 border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-900 dark:text-emerald-200"
-        >
-          {aviso}
-        </p>
-      )}
+          {emAndamento === "enviar" && (
+            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+          )}
+          {cadastrando ? "Criar conta" : "Entrar"}
+        </button>
+
+        {cadastrando ? (
+          <p className="pt-1 text-center text-xs text-muted-foreground">
+            Já tem conta?{" "}
+            <button
+              type="button"
+              onClick={() => trocarModo("entrar")}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Entrar
+            </button>
+          </p>
+        ) : (
+          <p className="pt-1 text-center text-xs text-muted-foreground">
+            Ainda não tem conta?{" "}
+            <button
+              type="button"
+              onClick={() => trocarModo("cadastrar")}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Cadastrar
+            </button>
+          </p>
+        )}
+      </form>
+
+      <div className="flex items-center gap-3 text-[0.65rem] uppercase tracking-widest text-muted-foreground">
+        <div className="h-px flex-1 bg-border" />
+        ou
+        <div className="h-px flex-1 bg-border" />
+      </div>
 
       <button
-        type="submit"
-        disabled={emAndamento !== null}
-        className={CLASSE_DO_BOTAO_PRINCIPAL}
+        type="button"
+        onClick={entrarComGoogle}
+        disabled={entrandoComGoogle}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-transparent px-4 py-1.5 text-sm font-medium text-foreground transition-colors duration-240 hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
       >
-        {emAndamento === "enviar" && (
-          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+        {entrandoComGoogle ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <GoogleIcon />
         )}
-        {cadastrando ? "Criar conta" : "Entrar"}
+        Entrar com o Google
       </button>
-
-      {cadastrando ? (
-        <p className="pt-1 text-center text-xs text-muted-foreground">
-          Já tem conta?{" "}
-          <button
-            type="button"
-            onClick={() => trocarModo("entrar")}
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            Entrar
-          </button>
-        </p>
-      ) : (
-        <p className="pt-1 text-center text-xs text-muted-foreground">
-          Ainda não tem conta?{" "}
-          <button
-            type="button"
-            onClick={() => trocarModo("cadastrar")}
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            Cadastrar
-          </button>
-        </p>
-      )}
-    </form>
+    </div>
   );
 }
 

@@ -45,6 +45,13 @@ function criarAuth() {
 
   const baseURL = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
 
+  // Login com Google é opcional: sem as credenciais, o provedor simplesmente
+  // não é registrado (diferente de AUTH_SECRET, nenhuma instância exige isto
+  // para subir).
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const googleConfigurado = Boolean(googleClientId && googleClientSecret);
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "pg",
@@ -58,6 +65,19 @@ function criarAuth() {
     secret,
     baseURL,
     trustedOrigins: [baseURL],
+
+    // Vincula automaticamente a uma conta e-mail/senha existente com o
+    // mesmo endereço quando a conta local já tem `emailVerified: true`
+    // (garantido por `requireEmailVerification` acima) — sem isso, não há
+    // configuração extra de `account.accountLinking` a fazer.
+    ...(googleConfigurado && {
+      socialProviders: {
+        google: {
+          clientId: googleClientId!,
+          clientSecret: googleClientSecret!,
+        },
+      },
+    }),
 
     advanced: {
       useSecureCookies: baseURL.startsWith("https://"),
@@ -150,13 +170,28 @@ function criarAuth() {
       user: {
         create: {
           before: async (novo) => {
-            if (novo.termosVersao !== VERSAO_DOS_TERMOS) {
+            // O cadastro por e-mail/senha já barra a ausência de
+            // `termosVersao` em `additionalFields` (required: true) antes de
+            // chegar aqui. No cadastro via Google o campo nunca vem
+            // preenchido — o fluxo OAuth do Better Auth não manda campos
+            // extras — então só confere a versão quando o campo existe, e
+            // deixa passar sem ela nesse caso (o aceite fica pendente e
+            // aparece no aviso de /conta, igual conta legada).
+            if (
+              novo.termosVersao !== undefined &&
+              novo.termosVersao !== VERSAO_DOS_TERMOS
+            ) {
               throw new APIError("BAD_REQUEST", {
                 message: "É preciso aceitar os Termos e a Política.",
                 code: "TERMS_NOT_ACCEPTED",
               });
             }
-            return { data: { ...novo, termosAceitosEm: new Date() } };
+            return {
+              data: {
+                ...novo,
+                termosAceitosEm: novo.termosVersao ? new Date() : undefined,
+              },
+            };
           },
         },
         update: {
