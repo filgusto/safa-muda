@@ -43,7 +43,7 @@ import {
  * aprovada. Envio de moderador já entra aprovado — seria teatro pedir que
  * aprovasse a si mesmo.
  *
- * O arquivo já está no MinIO quando estas ações rodam: o navegador subiu direto
+ * O arquivo já está no Garage quando estas ações rodam: o navegador subiu direto
  * por URL pré-assinada (ver /api/media/upload).
  */
 
@@ -226,7 +226,7 @@ const importarWikimediaSchema = z.object({
 });
 
 /**
- * Baixa a imagem do Commons, espelha no MinIO como qualquer outra foto do
+ * Baixa a imagem do Commons, espelha no Garage como qualquer outra foto do
  * catálogo, e vincula à espécie. A URL da ficha do Commons fica guardada em
  * `media.sourceUrl` como proveniência.
  */
@@ -443,8 +443,8 @@ export async function definirFotoPrincipal(id: string): Promise<Resultado> {
 /**
  * Remove a foto do catálogo e apaga o arquivo.
  *
- * O objeto no MinIO sai junto: mantê-lo seria guardar imagem que nenhuma tela
- * alcança. A ordem é objeto primeiro, registro depois — se o MinIO falhar, a
+ * O objeto no Garage sai junto: mantê-lo seria guardar imagem que nenhuma tela
+ * alcança. A ordem é objeto primeiro, registro depois — se o Garage falhar, a
  * linha continua lá e a remoção pode ser repetida; o inverso deixaria arquivo
  * pago e invisível.
  *

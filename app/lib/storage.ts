@@ -9,9 +9,9 @@ import { randomUUID } from "node:crypto";
 import { LIMITE_DE_UPLOAD_BYTES } from "./limite-de-upload.ts";
 
 /**
- * Acesso ao MinIO (S3-compatível).
+ * Acesso ao Garage (S3-compatível).
  *
- * O upload é feito pelo navegador direto no MinIO, via URL pré-assinada — o
+ * O upload é feito pelo navegador direto no Garage, via URL pré-assinada — o
  * arquivo não passa pelo servidor Next. Isso evita segurar imagens de campo
  * (que são grandes e vêm de celular) na memória do processo.
  *
@@ -27,12 +27,12 @@ const credentials = {
   secretAccessKey: process.env.S3_SECRET_KEY ?? "",
 };
 
-/** Endpoint interno: o servidor fala com o MinIO pela rede do Docker. */
-const endpointInterno = process.env.S3_ENDPOINT ?? "http://minio:9000";
+/** Endpoint interno: o servidor fala com o Garage pela rede do Docker. */
+const endpointInterno = process.env.S3_ENDPOINT ?? "http://garage:3900";
 
 /**
- * Endpoint público: o NAVEGADOR precisa alcançar o MinIO para o upload
- * pré-assinado, e `http://minio:9000` só existe dentro da rede do Docker.
+ * Endpoint público: o NAVEGADOR precisa alcançar o Garage para o upload
+ * pré-assinado, e `http://garage:3900` só existe dentro da rede do Docker.
  *
  * A assinatura SigV4 cobre o cabeçalho Host, então não dá para gerar a URL com
  * um endpoint e trocar o host depois — a assinatura quebra. Por isso são dois
@@ -40,12 +40,12 @@ const endpointInterno = process.env.S3_ENDPOINT ?? "http://minio:9000";
  */
 const endpointPublico = process.env.S3_PUBLIC_ENDPOINT ?? endpointInterno;
 
-/** Operações servidor→MinIO (remoção, cópia, leitura de metadados). */
+/** Operações servidor→Garage (remoção, cópia, leitura de metadados). */
 export const s3 = new S3Client({
   endpoint: endpointInterno,
   region: "us-east-1",
   credentials,
-  forcePathStyle: true, // MinIO usa URLs path-style
+  forcePathStyle: true, // bucket no caminho da URL — sem DNS curinga por bucket
 });
 
 /** Usado só para assinar URLs que o navegador vai abrir. */
@@ -100,7 +100,7 @@ export function gerarChave(contentType: string): string {
  * POST pré-assinado para o navegador subir o arquivo. Vale 5 minutos.
  *
  * Diferente de um PUT pré-assinado, a política assinada fixa a chave, o tipo e
- * o tamanho: o MinIO recusa qualquer envio fora de `1 … TAMANHO_MAXIMO_BYTES`
+ * o tamanho: o Garage recusa qualquer envio fora de `1 … TAMANHO_MAXIMO_BYTES`
  * ou com outro Content-Type, mesmo que o cliente declare um tamanho falso.
  */
 export async function postDeUpload(params: {

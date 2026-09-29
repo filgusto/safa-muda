@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils.ts";
  * Envio de foto para uma espécie.
  *
  * O arquivo passa por `enviarMidia`: reduzido a 1 MB no próprio navegador e
- * subido direto ao MinIO por URL pré-assinada, sem passar pela memória do
+ * subido direto ao Garage por URL pré-assinada, sem passar pela memória do
  * processo Next. Só depois o vínculo é gravado.
  *
  * Crédito e texto alternativo são obrigatórios: o primeiro porque foto sem

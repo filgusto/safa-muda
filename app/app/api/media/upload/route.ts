@@ -24,7 +24,7 @@ const corpoSchema = z.object({
 
 /**
  * Registra o arquivo e devolve uma URL pré-assinada para o navegador subir o
- * conteúdo direto no MinIO.
+ * conteúdo direto no Garage.
  *
  * A linha em `media` é criada antes do upload de fato. Se o navegador desistir,
  * fica um registro órfão sem objeto — barato, e detectável por uma varredura

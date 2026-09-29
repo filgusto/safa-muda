@@ -54,7 +54,7 @@ somar 170%–277% de área plantada num mesmo canteiro.
 | Banco | PostgreSQL 16 + PostGIS |
 | ORM | Drizzle |
 | Autenticação | Better Auth |
-| Arquivos | MinIO (S3-compatível) |
+| Arquivos | Garage (S3-compatível) |
 | Estilo | Tailwind CSS + shadcn/ui + tokens Kuara |
 | Fontes | Fraunces (serifada), IBM Plex Sans, IBM Plex Mono |
 | Orquestração | Docker Compose, Traefik ou Nginx |
@@ -70,7 +70,8 @@ docker compose up -d --build
 ```
 
 - Aplicação: <http://localhost:3000>
-- Console do MinIO: <http://localhost:9001>
+- API S3 do Garage: <http://localhost:3900> (sem console web; inspecione pelo
+  CLI, ex.: `docker compose exec garage /garage bucket info safa-muda-media`)
 
 Logs: `docker compose logs -f web`
 
@@ -81,16 +82,15 @@ docker compose exec web npm run db:seed
 ```
 
 > Rode pela Docker Compose, não com `npm run dev` na máquina — a stack fornece
-> Postgres, PostGIS e MinIO.
+> Postgres, PostGIS e o Garage.
 
 ### Portas ocupadas
 
-Se 3000, 9000 ou 9001 já estiverem em uso, defina no `.env`:
+Se 3000 ou 3900 já estiverem em uso, defina no `.env`:
 
 ```bash
 WEB_PORT=3100
-MINIO_API_PORT=9100
-MINIO_CONSOLE_PORT=9101
+GARAGE_S3_PORT=9100
 ```
 
 ### Imagem de satélite no mapa
@@ -175,22 +175,22 @@ E2E_BASE_URL=http://localhost:3000 npm run e2e
 3. Primeiro deploy: `./scripts/deploy.sh`
 4. Atualizações: `./scripts/update-app-in-server.sh`
 5. Backups: agende `./scripts/backup-db.sh` no cron. Ele gera um dump do
-   Postgres (`safa_muda_*.dump`) e espelha as fotos do MinIO em
+   Postgres (`safa_muda_*.dump`) e espelha as fotos do Garage em
    `$BACKUP_DIR/media`; defina `RCLONE_REMOTE` para copiar tudo para fora do
    servidor. O `update-app-in-server.sh` roda o backup antes de migrar.
    **Restore:** `docker compose -f docker-compose.prod.yml exec -T postgres
    pg_restore -U safa_muda -d safa_muda --clean --if-exists < arquivo.dump`;
-   fotos: `mc mirror` do diretório `media` de volta ao bucket. Teste o restore
+   fotos: o mesmo `rclone copy` do script, com origem e destino invertidos. Teste o restore
    antes de depender dele.
 
 > `S3_PUBLIC_DOMAIN` é necessário porque o upload é feito pelo navegador direto
-> no MinIO, via URL pré-assinada — e a assinatura SigV4 cobre o cabeçalho Host.
+> no Garage, via URL pré-assinada — e a assinatura SigV4 cobre o cabeçalho Host.
 
 ### Observabilidade
 
 - **`/api/health`** — checagem rasa (só o banco), usada pelo healthcheck do
   Docker e do Traefik a cada 30s. **`/api/health?deep=1`** também confere o
-  MinIO; aponte um monitor externo (UptimeRobot, Better Uptime, um cron com
+  Garage; aponte um monitor externo (UptimeRobot, Better Uptime, um cron com
   `curl` e alerta) para essa URL, num intervalo de minutos — não a use no
   healthcheck do load balancer, que roda com frequência demais para isso.
 - **`instrumentation.ts`** recusa a partida em produção com variável obrigatória

@@ -6,7 +6,7 @@ const completo = {
   DATABASE_URL: "postgresql://u:p@db/x",
   AUTH_SECRET: segredo,
   NEXT_PUBLIC_SERVER_URL: "https://safamuda.org.br",
-  S3_ENDPOINT: "http://minio:9000",
+  S3_ENDPOINT: "http://garage:3900",
   S3_PUBLIC_ENDPOINT: "https://s3.safamuda.org.br",
   S3_ACCESS_KEY: "app",
   S3_SECRET_KEY: "segredo",

@@ -48,7 +48,7 @@ type FotoPendenteBase = {
 };
 
 /**
- * Foto escolhida no modo de edição; só sobe ao MinIO (ou é importada do
+ * Foto escolhida no modo de edição; só sobe ao Garage (ou é importada do
  * Commons) no envio. "upload" ainda guarda o `File` local a comprimir e
  * enviar; "wikimedia" guarda só o link da ficha — o download acontece no
  * servidor, dentro de `importarFotoDoWikimedia`.
@@ -233,7 +233,7 @@ export function ProvedorDoModoDeEdicao({
   /**
    * Campos primeiro, numa proposta por fonte e numa transação só; depois o que
    * muda em foto já publicada — a troca da principal e as trocas de fase —;
-   * então as fotos novas, uma a uma, porque cada uma sobe ao MinIO; e por
+   * então as fotos novas, uma a uma, porque cada uma sobe ao Garage; e por
    * último as remoções, que apagam arquivo e não têm volta. Se algo falhar, o
    * que já foi enviado sai do rascunho e o resto fica para tentar de novo.
    */

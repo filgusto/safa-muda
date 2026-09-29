@@ -1,0 +1,25 @@
+# Configuração do Garage (armazenamento de objetos S3-compatível).
+# Ver docs/adr/0003-garage-no-lugar-do-minio.md.
+#
+# Um nó só, sem replicação: o Safa Muda roda num servidor. Os segredos não
+# ficam aqui — vêm do ambiente do contêiner:
+#   GARAGE_RPC_SECRET   comunicação interna entre nós (e do CLI com o nó)
+#   GARAGE_ADMIN_TOKEN  API de administração, usada por garage/init.mjs
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+# A região entra na assinatura SigV4 e precisa bater com a do cliente em
+# app/lib/storage.ts.
+s3_region = "us-east-1"
+api_bind_addr = "[::]:3900"
+
+[admin]
+api_bind_addr = "[::]:3903"
