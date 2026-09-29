@@ -5,7 +5,7 @@ import { removerObjeto } from "./storage.ts";
 
 /**
  * Apaga do armazenamento a foto de perfil anterior. É dado pessoal: trocar ou
- * remover a foto não pode deixar a antiga guardada no MinIO.
+ * remover a foto não pode deixar a antiga guardada no Garage.
  *
  * Só apaga o que é de fato dela — um registro em `media` enviado por ela e
  * com a chave que a URL aponta — para que uma URL forjada não derrube a

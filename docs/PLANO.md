@@ -13,7 +13,7 @@ Planejamento 4D (tempo × estratos × espaço) + catálogo colaborativo + diári
 | Tema                          | Decisão                                                | Implicação                                                                                                                                                                                                                                     |
 | ----------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Licença**                   | **AGPL-3.0**                                           | Quem hospedar versão modificada como serviço abre o código. Cabeçalho de licença nos arquivos e `LICENSE` na raiz, Fase 0.                                                                                                                     |
-| **Nome**                      | **`safa-muda`**                                        | Rename global na Fase 0: rede `safa-muda-net`, volumes `safa-muda-pgdata` / `safa-muda-minio-data`, bucket `safa-muda-media`, usuário/DB `safa_muda`.                                                                                          |
+| **Nome**                      | **`safa-muda`**                                        | Rename global na Fase 0: rede `safa-muda-net`, volumes `safa-muda-pgdata` / `safa-muda-garage-data` (era `safa-muda-minio-data` até o [ADR 0003](adr/0003-garage-no-lugar-do-minio.md)), bucket `safa-muda-media`, usuário/DB `safa_muda`.                                                                                          |
 | **Acesso**                    | Catálogo **público**; projetos **privados** por padrão | Leitura do catálogo e fichas sem login (SEO + valor público do wiki). Login para propor edição e para criar/ver projetos. Link não-listado opcional por projeto. Middleware e políticas de leitura precisam distinguir os dois desde a Fase 0. |
 | **Granularidade da timeline** | **Mês**, com zoom agregando em anos                    | `t_start_month` / `t_end_month` inteiros. Escala horizontal virtualizada; níveis de zoom mês → trimestre → ano. Suporta tanto alface de 45 dias quanto jequitibá de 40 anos.                                                                   |
 
@@ -194,7 +194,7 @@ são linkáveis e sobrevivem ao reload, sem transição de página.
 | Projeção        | proj4js                                | local ↔ WGS84                                      |
 | Desenho         | canvas/SVG próprio sobre o plano local | mesmo código nos dois modos                        |
 | Drag & drop     | dnd-kit                                | catálogo → timeline                                |
-| Arquivos        | @aws-sdk/client-s3 → MinIO             | upload por URL pré-assinada                        |
+| Arquivos        | @aws-sdk/client-s3 → Garage            | upload por URL pré-assinada                        |
 | Testes          | Vitest (mantido) + Playwright (fase 5) |                                                    |
 | i18n            | next-intl, pt-BR default               | estrutura pronta, sem traduzir agora               |
 
@@ -317,7 +317,7 @@ Cada fase termina com algo **usável e mergeado**, não com um andaime.
   migration inicial.
 - Instalar e configurar Drizzle + drizzle-kit; script de migration novo.
 - Better Auth: cadastro, login, sessão, papéis. Seed do primeiro admin.
-- Upload para MinIO por URL pré-assinada + rota de leitura.
+- Upload para o armazenamento S3 (MinIO na época; Garage desde o ADR 0003) por URL pré-assinada + rota de leitura.
 - Andaime open-source: `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`,
   `docs/adr/`, templates de issue/PR, GitHub Actions (typecheck, lint, test, build).
 - Atualizar `CLAUDE.md` e `README.md` (o protocolo de duas fases permanece; a

@@ -27,7 +27,7 @@ type Preparada = {
  * 1 MB (ver lib/comprimir-imagem.ts).
  *
  * A foto não sobe na hora: entra no rascunho do modo de edição e só vai ao
- * MinIO em "Salvar e enviar", junto com as alterações dos campos — descartar a
+ * Garage em "Salvar e enviar", junto com as alterações dos campos — descartar a
  * edição descarta a foto também. No envio, a de quem não é da equipe entra
  * pendente (/admin/sugestoes); a da equipe entra publicada — ver
  * `adicionarFoto`.

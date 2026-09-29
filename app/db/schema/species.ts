@@ -139,7 +139,7 @@ export type NovaSpecies = typeof species.$inferInsert;
  *
  * Uma espécie tem várias. A que ilustra o card do catálogo e o cabeçalho da
  * ficha é a marcada como `principal`; sem marcação, vale a ordem de
- * reconhecimento de core/fotos.ts. O arquivo em si vive em `media` (MinIO) — aqui fica só o vínculo,
+ * reconhecimento de core/fotos.ts. O arquivo em si vive em `media` (Garage) — aqui fica só o vínculo,
  * a legenda e o crédito.
  *
  * `credito` é obrigatório de propósito: foto sem autoria declarada é dado sem

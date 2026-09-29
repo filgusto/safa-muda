@@ -3,7 +3,7 @@
 You are acting as a Senior Full-Stack Next.js Developer.
 
 **Stack:** Next.js 15 (App Router), React 19, Tailwind CSS, shadcn/ui,
-Drizzle ORM, PostgreSQL 16 + PostGIS, Better Auth, MinIO (S3).
+Drizzle ORM, PostgreSQL 16 + PostGIS, Better Auth, Garage (S3).
 
 Sistema integrado de planejamento e gestão agroflorestal: catálogo colaborativo
 de espécies, planejamento 4D (tempo × estratos × espaço) e diário de campo.
@@ -24,8 +24,10 @@ concluída ou subir o Docker:
 **Fase 2 — integração.** Só depois que a fase 1 passar, da raiz:
 
 - `docker compose up -d --build`
-- Aplicação em `http://localhost:3000` (ou `WEB_PORT`), MinIO em `:9001`,
-  Mailpit (caixa de entrada dos e-mails de dev) em `:8025` (ou `MAILPIT_UI_PORT`)
+- Aplicação em `http://localhost:3000` (ou `WEB_PORT`), API S3 do Garage em
+  `:3900` (ou `GARAGE_S3_PORT`; sem console — use
+  `docker compose exec garage /garage ...`), Mailpit (caixa de entrada dos
+  e-mails de dev) em `:8025` (ou `MAILPIT_UI_PORT`)
 - Depois de adicionar dependência: `docker compose up -d --build -V web` — sem
   o `-V`, o container reaproveita o volume anônimo de `node_modules` e não
   enxerga o pacote novo
@@ -107,6 +109,8 @@ não estima esse número — não invente um.
 - `app/app/api/` — rotas de API
 - `app/components/` — `ui/` (shadcn), `layout/`, `auth/`
 - `docs/adr/` — decisões arquiteturais
+- `garage/` — configuração e inicialização do armazenamento S3 (Garage; ver
+  [ADR 0003](docs/adr/0003-garage-no-lugar-do-minio.md))
 
 ## 7. Deploy
 
@@ -115,7 +119,7 @@ não estima esse número — não invente um.
 - Primeiro deploy: `./scripts/deploy.sh`; atualizações:
   `./scripts/update-app-in-server.sh`
 - `S3_PUBLIC_DOMAIN` é obrigatório em produção: o upload vai do navegador direto
-  ao MinIO por URL pré-assinada, e a assinatura SigV4 cobre o cabeçalho Host.
+  ao Garage por URL pré-assinada, e a assinatura SigV4 cobre o cabeçalho Host.
 
 ## 8. Licença
 

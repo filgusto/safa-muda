@@ -1,13 +1,13 @@
 import { comprimirParaEnvio } from "@/lib/comprimir-imagem.ts";
 
 /**
- * Caminho único de envio de arquivo do navegador ao MinIO.
+ * Caminho único de envio de arquivo do navegador ao Garage.
  *
  * Todo formulário que envia imagem passa por aqui — catálogo, diário de campo
  * e o que vier depois — para que a redução a 1 MB (ver comprimir-imagem.ts)
  * valha em todo o site, e não só onde alguém lembrou de aplicá-la.
  *
- * O arquivo vai direto ao MinIO por POST pré-assinado: uma foto de celular
+ * O arquivo vai direto ao Garage por POST pré-assinado: uma foto de celular
  * nunca passa pela memória do processo Next.
  */
 export async function enviarMidia(

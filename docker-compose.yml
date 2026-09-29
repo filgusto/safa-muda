@@ -4,7 +4,7 @@
 # Differences from docker-compose.prod.yml (intentional):
 #   - Dockerfile target: dev  (hot-reload via next dev, no build step)
 #   - Source code mounted for live edits
-#   - Ports 3000 / 9000 / 9001 bound to 0.0.0.0 (localhost access)
+#   - Ports 3000 / 3900 bound to 127.0.0.1 (localhost access)
 #   - No Nginx reverse proxy (connect directly to web:3000)
 #   - Migrations run in dev too (no push:true — Payload foi removido)
 #   - No restart:always / resource limits (dev convenience)
@@ -12,48 +12,52 @@
 
 services:
 
-  # ── MinIO object storage ──────────────────────────────────────────────────────
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+  # ── Garage (armazenamento de objetos S3-compatível) ────────────────────────────
+  # Substituiu o MinIO — ver docs/adr/0003-garage-no-lugar-do-minio.md.
+  # `--single-node` monta sozinho o layout de um nó; bucket, chave e CORS ficam
+  # com o garage-init abaixo. Sem console web: use o CLI, por exemplo
+  #   docker compose exec garage /garage bucket info safa-muda-media
+  garage:
+    image: dxflrs/garage:v2.3.0
+    command: ["/garage", "server", "--single-node"]
     ports:
-      # Portas do host são configuráveis para não colidir com outros projetos
-      # rodando na mesma máquina — ver .env.example.
-      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"       # S3 API
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"   # Console
+      # Porta do host configurável para não colidir com outros projetos
+      # rodando na mesma máquina — ver .env.example. A API de administração
+      # (3903) não é exposta: só o garage-init fala com ela.
+      - "127.0.0.1:${GARAGE_S3_PORT:-3900}:3900"       # S3 API
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-safa_muda}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-safa_muda_dev_secret}
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:-63041e3a051ddf0f74a6e1dfc76b6db3f3aa9c0e4e73c6d35a5d098c1798db47}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:-safa_muda_dev_admin_token}
     volumes:
-      - safa-muda-minio-data:/data
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - safa-muda-garage-data:/var/lib/garage
     networks:
       - safa-muda-net
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      # A imagem não tem shell nem curl; o próprio binário serve de sonda.
+      test: ["CMD", "/garage", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 10s
 
-  # ── MinIO bucket initialisation (runs once, then exits) ───────────────────────
-  createbuckets:
-    image: minio/minio:latest   # same image as minio — mc is guaranteed available
+  # ── Garage: bucket, chave da aplicação e CORS (roda e sai) ─────────────────────
+  garage-init:
+    image: node:22-alpine
+    command: ["node", "/garage-init.mjs"]
     depends_on:
-      minio:
+      garage:
         condition: service_healthy
     networks:
       - safa-muda-net
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-safa_muda}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-safa_muda_dev_secret}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
-        mc mb --ignore-existing minio/safa-muda-media &&
-        mc anonymous set none minio/safa-muda-media &&
-        echo 'Bucket safa-muda-media ready (privado — a leitura passa por app/media/[...key]/route.ts).'
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:-safa_muda_dev_admin_token}
+      GARAGE_BUCKET: safa-muda-media
+      GARAGE_APP_KEY_ID: ${GARAGE_APP_KEY_ID:-GKa81787c793d1dd5c5789d4e2}
+      GARAGE_APP_SECRET_KEY: ${GARAGE_APP_SECRET_KEY:-d18cbe885d00f2ad6d9ee975aa3d607c70b7308947e514181f302c9be3b39cc8}
+      APP_ORIGIN: http://localhost:${WEB_PORT:-3000}
+    volumes:
+      - ./garage/init.mjs:/garage-init.mjs:ro
     restart: "no"
 
   # ── Mailpit (SMTP de desenvolvimento) ─────────────────────────────────────────
@@ -126,13 +130,17 @@ services:
       DATABASE_URL: postgresql://safa_muda:${POSTGRES_PASSWORD}@postgres:5432/safa_muda
       AUTH_SECRET: ${AUTH_SECRET}
       NEXT_PUBLIC_SERVER_URL: http://localhost:${WEB_PORT:-3000}
-      S3_ENDPOINT: http://minio:9000
-      # O navegador não resolve "minio" — o upload pré-assinado precisa de um
+      S3_ENDPOINT: http://garage:3900
+      # O navegador não resolve "garage" — o upload pré-assinado precisa de um
       # host alcançável a partir da máquina do usuário. Ver lib/storage.ts.
-      S3_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-9000}
+      S3_PUBLIC_ENDPOINT: http://localhost:${GARAGE_S3_PORT:-3900}
       S3_BUCKET: safa-muda-media
-      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-safa_muda}
-      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-safa_muda_dev_secret}
+      S3_ACCESS_KEY: ${GARAGE_APP_KEY_ID:-GKa81787c793d1dd5c5789d4e2}
+      S3_SECRET_KEY: ${GARAGE_APP_SECRET_KEY:-d18cbe885d00f2ad6d9ee975aa3d607c70b7308947e514181f302c9be3b39cc8}
+      # O env_file traz o .env inteiro; a aplicação não precisa dos segredos
+      # de administração do Garage.
+      GARAGE_RPC_SECRET: ""
+      GARAGE_ADMIN_TOKEN: ""
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SMTP_FROM: Safa Muda <nao-responda@safamuda.local>
@@ -143,7 +151,7 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      createbuckets:
+      garage-init:
         condition: service_completed_successfully
     networks:
       - safa-muda-net
@@ -157,7 +165,7 @@ services:
 volumes:
   safa-muda-pgdata:
     driver: local
-  safa-muda-minio-data:
+  safa-muda-garage-data:
     driver: local
 
 # ── Networks ──────────────────────────────────────────────────────────────────

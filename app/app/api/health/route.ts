@@ -8,7 +8,7 @@ import { verificarArmazenamento } from "@/lib/storage.ts";
  *
  * Sem `?deep=1` só confirma que o processo responde e o banco está de pé —
  * é chamado a cada 30s (ver docker-compose.prod.yml), então fica barato.
- * `?deep=1` também confere o MinIO; use num monitor externo, num intervalo
+ * `?deep=1` também confere o Garage; use num monitor externo, num intervalo
  * maior, não no healthcheck do load balancer.
  */
 export async function GET(request: NextRequest) {

@@ -3,7 +3,7 @@
 .claude
 # Guia pessoal de teste local — não versionado
 docs/TESTE-LOCAL.md
-# Uploads de mídia — ficam no MinIO, não no git
+# Uploads de mídia — ficam no Garage, não no git
 app/media/
 # Next.js
 app/.next/
@@ -14,5 +14,5 @@ app/out/
 # Drizzle
 app/db/migrations/meta/_journal.json.bak
 
-# Backups locais de banco + MinIO — nunca versionados
+# Backups locais de banco + armazenamento de objetos — nunca versionados
 _backups/

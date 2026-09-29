@@ -57,18 +57,25 @@ log "Backup complete — size: $SIZE"
 find "$BACKUP_DIR" -name "safa_muda_*.dump" -mtime +"$KEEP_DAYS" -delete
 log "Pruned backups older than $KEEP_DAYS days"
 
-# ── Espelho das fotos (MinIO) ────────────────────────────────────────────────
-# As fotos vivem só no volume do MinIO: copie o bucket para o mesmo diretório.
-# O `mc mirror` roda num contêiner descartável, na rede do compose.
+# ── Espelho das fotos (Garage) ───────────────────────────────────────────────
+# As fotos vivem só no volume do Garage: copie o bucket para o mesmo diretório.
+# O rclone roda num contêiner descartável, na rede do compose, com a chave da
+# aplicação (que já lê o bucket). Para restaurar, inverta origem e destino.
 MEDIA_DIR="$BACKUP_DIR/media"
 mkdir -p "$MEDIA_DIR"
 log "Espelhando o bucket safa-muda-media → $MEDIA_DIR"
 set -a; source "$REPO_DIR/.env.prod"; set +a
 docker run --rm --network safa-muda-net \
     -v "$MEDIA_DIR:/backup" \
-    -e MC_HOST_minio="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000" \
-    --entrypoint mc minio/minio:latest \
-    mirror --overwrite --quiet minio/safa-muda-media /backup
+    -e RCLONE_CONFIG_GARAGE_TYPE=s3 \
+    -e RCLONE_CONFIG_GARAGE_PROVIDER=Other \
+    -e RCLONE_CONFIG_GARAGE_ENDPOINT=http://garage:3900 \
+    -e RCLONE_CONFIG_GARAGE_REGION=us-east-1 \
+    -e RCLONE_CONFIG_GARAGE_FORCE_PATH_STYLE=true \
+    -e RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID="$GARAGE_APP_KEY_ID" \
+    -e RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY="$GARAGE_APP_SECRET_KEY" \
+    rclone/rclone:1.75 \
+    copy --quiet garage:safa-muda-media /backup
 log "Espelho das fotos concluído"
 
 # ── Optional offsite sync via rclone ─────────────────────────────────────────

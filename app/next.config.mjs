@@ -13,7 +13,7 @@ const nextConfig = {
     async headers() {
         if (process.env.NODE_ENV === 'production') return []
 
-        // O upload é feito pelo navegador direto no MinIO, num host diferente
+        // O upload é feito pelo navegador direto no Garage, num host diferente
         // do da aplicação — sem liberar essa origem, o CSP bloqueia o PUT.
         // Ver app/lib/storage.ts.
         const s3Origin = process.env.S3_PUBLIC_ENDPOINT
