@@ -17,17 +17,10 @@ app/db/migrations/meta/_journal.json.bak
 # Backups locais de banco + armazenamento de objetos — nunca versionados
 _backups/
 
-# Referências locais que não vão para o repositório: senhas das contas de
-# teste, capturas de tela e o catálogo da Embrapa (PDFs grandes, direito de
-# redistribuição incerto)
-_references/test-users.md
-_references/google-data.png
-_references/embrapa-catálogo/
-# Livros de referência: ficam só na máquina de quem desenvolve, pelo mesmo
-# motivo. A Tabela Guia continua versionada — é a entrada do pipeline do
-# dataset (scripts/dataset/README.md).
-_references/messerschmidt_guia-dos-estratos-agroflorestais.pdf
-_references/neto_agroflorestando-o-mundo.pdf
+# Referências locais (senhas das contas de teste, capturas de tela, PDFs com
+# direito de redistribuição incerto, logos de trabalho): ficam só na máquina
+# de quem desenvolve.
+_references/
 
 # Cache do Vitest quando rodado da raiz
 node_modules/
