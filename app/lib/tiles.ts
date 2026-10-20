@@ -36,9 +36,11 @@ export function provedoresDisponiveis(): ProvedorDeMapa[] {
       rotulo: "Satélite",
       url: urlDoSatelite,
       atribuicao:
-        process.env.NEXT_PUBLIC_SATELLITE_ATTRIBUTION ??
+        // `||`, não `??`: o build do Docker repassa as variáveis ausentes
+        // como texto vazio (ver Dockerfile).
+        process.env.NEXT_PUBLIC_SATELLITE_ATTRIBUTION ||
         "Imagem de satélite do provedor configurado",
-      zoomMaximo: Number(process.env.NEXT_PUBLIC_SATELLITE_MAX_ZOOM ?? 19),
+      zoomMaximo: Number(process.env.NEXT_PUBLIC_SATELLITE_MAX_ZOOM || 19),
     });
   }
 

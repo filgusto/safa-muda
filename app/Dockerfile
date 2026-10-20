@@ -52,6 +52,16 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Variáveis NEXT_PUBLIC_* lidas por componentes de cliente são embutidas no
+# bundle aqui, no build — defini-las só no ambiente do contêiner não tem
+# efeito. Opcionais: sem elas o mapa usa só o OpenStreetMap (lib/tiles.ts).
+ARG NEXT_PUBLIC_SATELLITE_TILE_URL
+ARG NEXT_PUBLIC_SATELLITE_ATTRIBUTION
+ARG NEXT_PUBLIC_SATELLITE_MAX_ZOOM
+ENV NEXT_PUBLIC_SATELLITE_TILE_URL=$NEXT_PUBLIC_SATELLITE_TILE_URL
+ENV NEXT_PUBLIC_SATELLITE_ATTRIBUTION=$NEXT_PUBLIC_SATELLITE_ATTRIBUTION
+ENV NEXT_PUBLIC_SATELLITE_MAX_ZOOM=$NEXT_PUBLIC_SATELLITE_MAX_ZOOM
+
 RUN npm run build
 
 # ─── Stage 3: runner (production) ─────────────────────────────────────────────

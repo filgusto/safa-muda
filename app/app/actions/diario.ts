@@ -15,6 +15,7 @@ import {
 } from "@/db/schema/index.ts";
 import { requireViewer, AccessError } from "@/lib/access.ts";
 import { podeEditarProjeto } from "@/lib/projetos.ts";
+import { apagarMidiasSemUso, midiasDoEvento } from "@/lib/limpeza-de-midia.ts";
 import { TIPOS_DE_EVENTO } from "@/core/diario.ts";
 import { posicoesDaRegra, type RegraDePosicionamento } from "@/core/croqui.ts";
 
@@ -235,9 +236,17 @@ export async function removerEvento(
   try {
     await garantirEdicao(projectId);
 
-    await db
-      .delete(event)
-      .where(and(eq(event.id, id), eq(event.projectId, projectId)));
+    // Confere o projeto antes de olhar as fotos: sem isso, um id de evento
+    // alheio levaria junto as fotos de outro projeto.
+    const alvo = await db.query.event.findFirst({
+      where: and(eq(event.id, id), eq(event.projectId, projectId)),
+    });
+    if (!alvo) return { ok: true };
+
+    const fotos = await midiasDoEvento(id);
+    await db.delete(event).where(eq(event.id, id));
+    // As fotos do diário são privadas: não ficam guardadas sem o evento.
+    await apagarMidiasSemUso(fotos);
 
     revalidatePath(`/projetos/${projectId}`);
     return { ok: true };

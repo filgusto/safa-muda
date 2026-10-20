@@ -192,6 +192,8 @@ export const speciesFoto = pgTable(
   },
   (tabela) => [
     index("species_media_species_idx").on(tabela.speciesId),
+    // /media/<key> pergunta, a cada imagem, se ela é foto aprovada do catálogo.
+    index("species_media_media_idx").on(tabela.mediaId),
     unique("species_media_unico").on(tabela.speciesId, tabela.mediaId),
     uniqueIndex("species_media_principal_unica")
       .on(tabela.speciesId)

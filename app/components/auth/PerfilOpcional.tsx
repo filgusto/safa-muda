@@ -1071,7 +1071,7 @@ export function PrivacidadeEDados({ perfil }: { perfil: PerfilDaConta }) {
         aoFechar={() => setExcluindo(false)}
         titulo="Excluir a conta"
       >
-        <FormularioDeExclusao />
+        <FormularioDeExclusao temSenha={perfil.temSenha} />
       </ModalDeConta>
     </section>
   );
@@ -1236,12 +1236,12 @@ const DESTINOS: Array<{ valor: string; titulo: string; texto: string }> = [
 ];
 
 /**
- * Exclusão de conta: exige a senha atual e uma escolha sobre as contribuições
+ * Exclusão de conta: exige a senha atual (quando a conta tem uma) e uma escolha sobre as contribuições
  * já publicadas. O servidor remove o cadastro, o perfil, a foto e o que era
  * privado; o que está no catálogo permanece com a citação escolhida aqui
  * (Política de Privacidade, item 5).
  */
-function FormularioDeExclusao() {
+function FormularioDeExclusao({ temSenha }: { temSenha: boolean }) {
   const [destino, setDestino] = useState("");
   const [senha, setSenha] = useState("");
   const [erros, setErros] = useState<{ destino?: string; senha?: string }>({});
@@ -1255,12 +1255,12 @@ function FormularioDeExclusao() {
     const novos: typeof erros = {};
     if (!destino)
       novos.destino = "Escolha o que fazer com as suas contribuições.";
-    if (!senha) novos.senha = "Digite sua senha para confirmar.";
+    if (temSenha && !senha) novos.senha = "Digite sua senha para confirmar.";
     setErros(novos);
     if (Object.keys(novos).length > 0) return;
 
     setEnviando(true);
-    const resultado = await excluirConta(senha, destino);
+    const resultado = await excluirConta(temSenha ? senha : null, destino);
 
     if (!resultado.ok) {
       setEnviando(false);
@@ -1322,16 +1322,25 @@ function FormularioDeExclusao() {
         )}
       </fieldset>
 
-      <Campo
-        id="conta-exclusao-senha"
-        name="password"
-        label="Sua senha"
-        type="password"
-        autoComplete="current-password"
-        value={senha}
-        onChange={(evento) => setSenha(evento.target.value)}
-        erro={erros.senha}
-      />
+      {temSenha ? (
+        <Campo
+          id="conta-exclusao-senha"
+          name="password"
+          label="Sua senha"
+          type="password"
+          autoComplete="current-password"
+          value={senha}
+          onChange={(evento) => setSenha(evento.target.value)}
+          erro={erros.senha}
+        />
+      ) : (
+        // Conta criada pelo Google: não há senha para pedir. O servidor só
+        // aceita a exclusão numa sessão recente (ver excluirConta).
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Sua conta entra pelo Google e não tem senha. Se você entrou há mais de
+          um dia, será preciso sair e entrar de novo antes de excluir.
+        </p>
+      )}
 
       {erroGeral && (
         <p role="alert" className={CLASSE_DO_ERRO}>

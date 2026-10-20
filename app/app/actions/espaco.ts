@@ -8,7 +8,12 @@ import { area, row, planting } from "@/db/schema/index.ts";
 import { requireViewer, AccessError } from "@/lib/access.ts";
 import { podeEditarProjeto } from "@/lib/projetos.ts";
 import { area as areaDoPoligono, comprimento } from "@/core/geo.ts";
-import { gerarLinhasParalelas } from "@/core/croqui.ts";
+import {
+  gerarLinhasParalelas,
+  ESPACAMENTO_MINIMO_M,
+  LimiteDeGeracao,
+  MAXIMO_DE_MUDAS_POR_REGRA,
+} from "@/core/croqui.ts";
 
 /** Ações do desenho espacial. */
 
@@ -19,7 +24,9 @@ export interface Resultado<T = undefined> {
 }
 
 function tratar(erro: unknown): Resultado<never> {
-  if (erro instanceof AccessError) return { ok: false, erro: erro.message };
+  if (erro instanceof AccessError || erro instanceof LimiteDeGeracao) {
+    return { ok: false, erro: erro.message };
+  }
   console.error("Falha em ação espacial:", erro);
   return { ok: false, erro: "Não foi possível concluir. Tente de novo." };
 }
@@ -41,9 +48,21 @@ async function areaDoProjeto(areaId: string, projectId: string) {
   return registro;
 }
 
+/**
+ * Coordenadas no plano local, em metros a partir da origem do desenho. O teto
+ * de 100 km é folgado para qualquer propriedade e mantém a geometria (e os
+ * laços que a percorrem, ver core/croqui.ts) dentro de números tratáveis.
+ */
+const COORDENADA_MAXIMA_M = 100_000;
+const coordenadaSchema = z
+  .number()
+  .finite()
+  .min(-COORDENADA_MAXIMA_M, "Ponto fora do alcance do desenho.")
+  .max(COORDENADA_MAXIMA_M, "Ponto fora do alcance do desenho.");
+
 const pontoSchema = z.object({
-  x: z.number().finite(),
-  y: z.number().finite(),
+  x: coordenadaSchema,
+  y: coordenadaSchema,
 });
 
 const poligonoSchema = z
@@ -213,7 +232,10 @@ export async function gerarLinhasNaArea(
       projectId: z.string().uuid(),
       areaId: z.string().uuid(),
       direcaoGraus: z.number().min(-360).max(360),
-      espacamentoM: z.number().positive().max(200),
+      espacamentoM: z
+        .number()
+        .min(0.1, "O espaçamento entre linhas precisa ser de ao menos 10 cm.")
+        .max(200),
       bordaduraM: z.number().min(0).max(200).default(0),
       tipo: z.enum(TIPOS_DE_LINHA).default("plantio"),
     });
@@ -305,6 +327,9 @@ export async function removerLinha(
 
 // ── Posicionamento do plantio ────────────────────────────────────────────────
 
+/** Teto dos campos "de/até" — muito além do comprimento de qualquer linha. */
+const TRECHO_MAXIMO_M = 1_000_000;
+
 /**
  * Prende um plantio a um trecho de linha, com espaçamento.
  *
@@ -317,9 +342,15 @@ export async function posicionarPlantio(entrada: unknown): Promise<Resultado> {
       plantingId: z.string().uuid(),
       projectId: z.string().uuid(),
       rowId: z.string().uuid(),
-      deMetros: z.number().min(0),
-      ateMetros: z.number().min(0),
-      espacamentoM: z.number().positive().max(50),
+      deMetros: z.number().min(0).max(TRECHO_MAXIMO_M),
+      ateMetros: z.number().min(0).max(TRECHO_MAXIMO_M),
+      espacamentoM: z
+        .number()
+        .min(
+          ESPACAMENTO_MINIMO_M,
+          "O espaçamento entre mudas precisa ser de ao menos 5 cm.",
+        )
+        .max(50),
     });
 
     const analise = schema.safeParse(entrada);
@@ -341,6 +372,17 @@ export async function posicionarPlantio(entrada: unknown): Promise<Resultado> {
     const linha = await db.query.row.findFirst({ where: eq(row.id, rowId) });
     if (!linha) return { ok: false, erro: "Linha não encontrada." };
     await areaDoProjeto(linha.areaId, projectId);
+
+    // Mesma conta de core/croqui.ts (posicoesDaRegra): o trecho útil acaba
+    // onde a linha acaba.
+    const fim = Math.min(ateMetros, linha.comprimentoM);
+    const mudas = Math.floor((fim - deMetros) / espacamentoM) + 1;
+    if (mudas > MAXIMO_DE_MUDAS_POR_REGRA) {
+      return {
+        ok: false,
+        erro: `Esse trecho teria mais de ${MAXIMO_DE_MUDAS_POR_REGRA.toLocaleString("pt-BR")} mudas. Aumente o espaçamento ou divida o plantio.`,
+      };
+    }
 
     await db
       .update(planting)

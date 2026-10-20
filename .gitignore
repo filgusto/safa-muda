@@ -23,3 +23,11 @@ _backups/
 _references/test-users.md
 _references/google-data.png
 _references/embrapa-catálogo/
+# Livros de referência: ficam só na máquina de quem desenvolve, pelo mesmo
+# motivo. A Tabela Guia continua versionada — é a entrada do pipeline do
+# dataset (scripts/dataset/README.md).
+_references/messerschmidt_guia-dos-estratos-agroflorestais.pdf
+_references/neto_agroflorestando-o-mundo.pdf
+
+# Cache do Vitest quando rodado da raiz
+node_modules/

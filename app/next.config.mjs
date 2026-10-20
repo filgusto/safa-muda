@@ -20,11 +20,32 @@ const nextConfig = {
             ? new URL(process.env.S3_PUBLIC_ENDPOINT).origin
             : ''
 
+        // Imagens de fora que a interface exibe: os tiles do mapa de fundo
+        // (lib/tiles.ts) e a prévia de importação do Wikimedia Commons.
+        // Mantenha em sincronia com o CSP de produção, em
+        // docker-compose.prod.yml.
+        const origensDeImagem = [
+            'https://tile.openstreetmap.org',
+            'https://upload.wikimedia.org',
+        ]
+        try {
+            if (process.env.NEXT_PUBLIC_SATELLITE_TILE_URL) {
+                origensDeImagem.push(
+                    new URL(process.env.NEXT_PUBLIC_SATELLITE_TILE_URL).origin,
+                )
+            }
+        } catch {
+            // URL de satélite inválida: o mapa só não mostra essa camada.
+        }
+
         const csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+            // challenges.cloudflare.com: desafio anti-robô do cadastro
+            // (Turnstile), que carrega um script e abre um iframe de lá.
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://challenges.cloudflare.com",
+            "frame-src https://challenges.cloudflare.com",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob:",
+            `img-src 'self' data: blob: ${origensDeImagem.join(' ')}`,
             "font-src 'self' data:",
             `connect-src 'self' ${s3Origin}`.trim(),
             "worker-src blob:",

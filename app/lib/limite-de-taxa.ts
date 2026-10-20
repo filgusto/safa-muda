@@ -56,6 +56,11 @@ export const REGRAS = {
   proposta: { max: 30, janelaMs: 60 * 60_000 },
   /** Conferir o formulário antes de enviar; consulta GBIF e iNaturalist. */
   validacao: { max: 120, janelaMs: 60 * 60_000 },
+  /**
+   * Códigos por e-mail (confirmação, recuperação) pedidos para um mesmo
+   * endereço — ver o hook em lib/auth.ts. Folga para reenviar algumas vezes.
+   */
+  codigoPorEmail: { max: 6, janelaMs: 60 * 60_000 },
   /** Cada importação baixa e recomprime uma imagem do Commons. */
   importacao: { max: 10, janelaMs: 10 * 60_000 },
 } satisfies Record<string, Regra>;

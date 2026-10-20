@@ -6,6 +6,8 @@ import {
   perimetro,
   recortarRetaNoPoligono,
   gerarLinhasParalelas,
+  LimiteDeGeracao,
+  MAXIMO_DE_MUDAS_POR_REGRA,
   contarMudas,
   posicoesDaRegra,
   densidadePorHectare,
@@ -203,6 +205,16 @@ describe("geração de linhas paralelas", () => {
     ).toEqual([]);
   });
 
+  it("recusa parâmetros que gerariam linhas demais", () => {
+    expect(() =>
+      gerarLinhasParalelas({
+        poligono: QUADRADO,
+        direcaoGraus: 0,
+        espacamentoM: 0.000001,
+      }),
+    ).toThrow(LimiteDeGeracao);
+  });
+
   it("não gera linha quando a bordadura engole a área", () => {
     expect(
       gerarLinhasParalelas({
@@ -220,6 +232,20 @@ describe("mudas ao longo da linha", () => {
     { x: 0, y: 0 },
     { x: 200, y: 0 },
   ];
+
+  it("corta as posições no teto de mudas por regra", () => {
+    const posicoes = posicoesDaRegra(
+      {
+        tipo: "linha",
+        rowId: "x",
+        deMetros: 0,
+        ateMetros: 200,
+        espacamentoM: 0.0001,
+      },
+      leira,
+    );
+    expect(posicoes).toHaveLength(MAXIMO_DE_MUDAS_POR_REGRA);
+  });
 
   it("conta sem gerar as posições", () => {
     // 0 a 100 m a cada 0,5 m: 201 mudas, contando as duas pontas.

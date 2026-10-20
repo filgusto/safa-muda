@@ -155,6 +155,27 @@ export interface ParametrosDasLinhas {
 }
 
 /**
+ * Tetos de geração. O desenho vem de fora (formulário, ação de servidor), e
+ * os laços abaixo rodam `alcance / espaçamento` vezes: sem teto, um
+ * espaçamento de frações de milímetro prenderia o processo por minutos. Os
+ * valores ficam bem acima de qualquer agrofloresta real — 2 000 linhas a 1 m
+ * são 2 km de largura; 20 000 mudas numa linha só, a 5 cm, são 1 km de leira.
+ */
+export const ESPACAMENTO_MINIMO_M = 0.05;
+export const MAXIMO_DE_LINHAS_GERADAS = 2_000;
+export const MAXIMO_DE_MUDAS_POR_REGRA = 20_000;
+
+/** A geração pedida passaria de um dos tetos acima. */
+export class LimiteDeGeracao extends Error {
+  constructor(mensagem: string) {
+    super(mensagem);
+    this.name = "LimiteDeGeracao";
+  }
+}
+
+const LINHAS_DEMAIS = `Esses parâmetros gerariam mais de ${MAXIMO_DE_LINHAS_GERADAS.toLocaleString("pt-BR")} linhas. Aumente o espaçamento.`;
+
+/**
  * Gera linhas de plantio paralelas cobrindo o polígono.
  *
  * A bordadura encolhe o alcance perpendicular, evitando linhas rentes à cerca.
@@ -190,6 +211,10 @@ export function gerarLinhasParalelas(
   maximo -= bordadura;
   if (minimo > maximo) return [];
 
+  if ((maximo - minimo) / espacamentoM > MAXIMO_DE_LINHAS_GERADAS) {
+    throw new LimiteDeGeracao(LINHAS_DEMAIS);
+  }
+
   const linhas: PontoLocal[][] = [];
 
   // Começa no primeiro múltiplo do espaçamento dentro do alcance, para que a
@@ -211,6 +236,12 @@ export function gerarLinhasParalelas(
     )) {
       const trecho = encolherTrecho(inicio, fim, bordadura);
       if (trecho) linhas.push(trecho);
+    }
+
+    // Área côncava: cada reta pode render vários trechos, então o teto
+    // também vale para o total, não só para o número de retas.
+    if (linhas.length > MAXIMO_DE_LINHAS_GERADAS) {
+      throw new LimiteDeGeracao(LINHAS_DEMAIS);
     }
   }
 
@@ -268,7 +299,14 @@ export function posicoesDaRegra(
   const total = comprimento(caminho);
   const fim = Math.min(regra.ateMetros, total);
 
-  for (let d = regra.deMetros; d <= fim + 1e-9; d += regra.espacamentoM) {
+  // O teto corta em vez de lançar: isto roda ao desenhar o croqui, e uma
+  // regra antiga fora do limite não pode derrubar a página do projeto. Regra
+  // nova acima do teto é recusada antes, em posicionarPlantio.
+  for (
+    let d = regra.deMetros;
+    d <= fim + 1e-9 && posicoes.length < MAXIMO_DE_MUDAS_POR_REGRA;
+    d += regra.espacamentoM
+  ) {
     const ponto = pontoAoLongo(caminho, d);
     if (ponto) posicoes.push(ponto);
   }

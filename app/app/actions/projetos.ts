@@ -7,6 +7,10 @@ import { db } from "@/db/index.ts";
 import { project, planting, species } from "@/db/schema/index.ts";
 import { requireViewer, AccessError } from "@/lib/access.ts";
 import { podeEditarProjeto } from "@/lib/projetos.ts";
+import {
+  apagarMidiasSemUso,
+  midiasDosProjetos,
+} from "@/lib/limpeza-de-midia.ts";
 import { ESTRATOS } from "@/core/estratos.ts";
 import {
   normalizarIntervalo,
@@ -123,7 +127,10 @@ export async function removerProjeto(id: string): Promise<Resultado> {
       throw new AccessError("Apenas o dono pode remover o projeto.");
     }
 
+    const fotos = await midiasDosProjetos([id]);
     await db.delete(project).where(eq(project.id, id));
+    // As fotos do diário são privadas: saem do armazenamento com o projeto.
+    await apagarMidiasSemUso(fotos);
     revalidatePath("/projetos");
     return { ok: true };
   } catch (erro) {

@@ -138,7 +138,10 @@ export const eventMedia = pgTable(
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
   },
-  (tabela) => [unique("event_media_unico").on(tabela.eventId, tabela.mediaId)],
+  (tabela) => [
+    unique("event_media_unico").on(tabela.eventId, tabela.mediaId),
+    index("event_media_media_idx").on(tabela.mediaId),
+  ],
 );
 
 export type PlantIndividual = typeof plantIndividual.$inferSelect;

@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { signIn, signUp, emailOtp, mensagemDeErro } from "@/lib/auth-client.ts";
 import { VERSAO_DOS_TERMOS } from "@/lib/termos.ts";
 import { AceiteDosTermos } from "./AceiteDosTermos.tsx";
+import { MENSAGEM_DO_CAPTCHA, useCaptcha } from "./Captcha.tsx";
 
 type Modo = "entrar" | "cadastro";
 
@@ -47,6 +48,9 @@ export function AuthForm({ modo }: { modo: Modo }) {
   const [aguardandoCodigoPara, setAguardandoCodigoPara] = useState<
     string | null
   >(null);
+
+  // Só o cadastro passa pelo desafio anti-robô (lib/captcha.ts).
+  const captcha = useCaptcha(modo === "cadastro");
 
   function entrarEIr() {
     router.push(destinoSeguro(searchParams.get("destino")));
@@ -101,19 +105,29 @@ export function AuthForm({ modo }: { modo: Modo }) {
       return;
     }
 
+    if (captcha.exigido && !captcha.token) {
+      setErro(MENSAGEM_DO_CAPTCHA);
+      return;
+    }
+
     setEnviando(true);
 
     const resultado =
       modo === "cadastro"
-        ? await signUp.email({
-            email,
-            password,
-            name: String(dados.get("name")),
-            termosVersao: VERSAO_DOS_TERMOS,
-          })
+        ? await signUp.email(
+            {
+              email,
+              password,
+              name: String(dados.get("name")),
+              termosVersao: VERSAO_DOS_TERMOS,
+            },
+            { headers: captcha.cabecalhos },
+          )
         : await signIn.email({ email, password });
 
     setEnviando(false);
+    // A resposta do desafio vale para uma tentativa só.
+    captcha.reiniciar();
     if (resultado.error) {
       // Conta que nunca confirmou o e-mail: o servidor já mandou um código
       // novo (sendOnSignIn), então vai direto para a etapa do código.
@@ -220,6 +234,8 @@ export function AuthForm({ modo }: { modo: Modo }) {
         {modo === "cadastro" && (
           <AceiteDosTermos id="termos" erro={errosDeCampo.termos} />
         )}
+
+        {captcha.elemento}
 
         {erro && (
           <p

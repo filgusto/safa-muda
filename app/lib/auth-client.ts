@@ -7,8 +7,21 @@ import {
   inferAdditionalFields,
 } from "better-auth/client/plugins";
 
+/**
+ * No navegador, a API de auth é sempre a própria origem da página. Ler
+ * NEXT_PUBLIC_SERVER_URL ali não serve: o Next embute as variáveis
+ * NEXT_PUBLIC_* no bundle em tempo de build, quando o endereço de produção
+ * ainda não existe (a imagem é a mesma para qualquer domínio) — o bundle
+ * ficaria apontando para o fallback. A variável só vale na renderização do
+ * servidor, onde é lida em runtime.
+ */
+const baseURL =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : (process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000");
+
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000",
+  baseURL,
   plugins: [
     emailOTPClient(),
     // Espelha o `role` de lib/auth.ts, para que `useSession` o tipe. É só
@@ -79,6 +92,10 @@ const MENSAGENS: Record<string, string> = {
   INVALID_OTP: "Código incorreto.",
   OTP_EXPIRED: "Este código expirou. Peça um novo.",
   TOO_MANY_ATTEMPTS: "Muitas tentativas com código errado. Peça um novo.",
+  // Desafio anti-robô do cadastro (components/auth/Captcha.tsx).
+  MISSING_RESPONSE: "Confirme que você não é um robô para continuar.",
+  VERIFICATION_FAILED:
+    "A verificação anti-robô falhou. Refaça o desafio e tente de novo.",
 };
 
 export function mensagemDeErro(
