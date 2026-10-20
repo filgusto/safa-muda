@@ -48,6 +48,14 @@ export function problemasDoAmbiente(
       "S3_PUBLIC_ENDPOINT precisa ser https: o navegador envia as fotos direto a ele.",
     );
   }
+  // Meio CAPTCHA é pior que nenhum: com só a chave pública o formulário
+  // mostra o desafio e o servidor não confere; com só a secreta, o servidor
+  // exigiria uma resposta que o formulário não tem como produzir.
+  if (falta("TURNSTILE_SITE_KEY") !== falta("TURNSTILE_SECRET_KEY")) {
+    problemas.push(
+      "TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY precisam ser definidas juntas.",
+    );
+  }
   if (/CHANGE_ME/.test(Object.values(env).join(" "))) {
     problemas.push("Há variável com valor de exemplo (CHANGE_ME).");
   }

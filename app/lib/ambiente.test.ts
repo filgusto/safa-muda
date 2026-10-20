@@ -61,4 +61,19 @@ describe("problemasDoAmbiente", () => {
       problemasDoAmbiente({ DATABASE_URL: "x", AUTH_SECRET: segredo }).join(),
     ).toMatch(/NEXT_PUBLIC_SERVER_URL/);
   });
+
+  it("exige as duas chaves do CAPTCHA, ou nenhuma", () => {
+    expect(
+      problemasDoAmbiente({ ...completo, TURNSTILE_SITE_KEY: "0x4AAA" }),
+    ).toEqual([
+      "TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY precisam ser definidas juntas.",
+    ]);
+    expect(
+      problemasDoAmbiente({
+        ...completo,
+        TURNSTILE_SITE_KEY: "0x4AAA",
+        TURNSTILE_SECRET_KEY: "0x4BBB",
+      }),
+    ).toEqual([]);
+  });
 });

@@ -350,7 +350,7 @@ function FichaDoUsuario({
  * que podem mudar têm um lápis ao lado. O nome se edita ali mesmo; e-mail e
  * senha pedem confirmação extra e abrem um modal.
  */
-function DadosCadastrais({ nome, email, papel, membroDesde }: Props) {
+function DadosCadastrais({ nome, email, papel, membroDesde, perfil }: Props) {
   const [modal, setModal] = useState<"email" | "senha" | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -373,18 +373,29 @@ function DadosCadastrais({ nome, email, papel, membroDesde }: Props) {
         >
           {email}
         </LinhaDeDado>
-        <LinhaDeDado
-          rotulo="Senha"
-          rotuloDoLapis="Alterar senha"
-          aoEditar={() => {
-            setAviso(null);
-            setModal("senha");
-          }}
-        >
-          <span aria-label="Senha oculta" className="tracking-widest">
-            ••••••••
-          </span>
-        </LinhaDeDado>
+        {perfil.temSenha ? (
+          <LinhaDeDado
+            rotulo="Senha"
+            rotuloDoLapis="Alterar senha"
+            aoEditar={() => {
+              setAviso(null);
+              setModal("senha");
+            }}
+          >
+            <span aria-label="Senha oculta" className="tracking-widest">
+              ••••••••
+            </span>
+          </LinhaDeDado>
+        ) : (
+          // Conta criada pelo Google: não há senha atual para conferir, então
+          // "Alterar senha" não teria como funcionar. Quem quiser uma usa
+          // "Esqueci minha senha" na tela de entrada.
+          <LinhaDeDado rotulo="Senha">
+            <span className="text-muted-foreground">
+              Você entra pelo Google
+            </span>
+          </LinhaDeDado>
+        )}
         <LinhaDeDado rotulo="Perfil">{papel}</LinhaDeDado>
         <LinhaDeDado rotulo="Desde">{membroDesde}</LinhaDeDado>
       </dl>

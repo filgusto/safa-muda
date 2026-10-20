@@ -183,6 +183,20 @@
       "when": 1790440034052,
       "tag": "0025_antes_da_revisao",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791027034088,
+      "tag": "0026_indices_de_midia_e_sessao",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791027034639,
+      "tag": "0027_remove_foto_de_perfil_externa",
+      "breakpoints": true
     }
   ]
 }

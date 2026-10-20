@@ -18,6 +18,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { AceiteDosTermos } from "@/components/auth/AceiteDosTermos.tsx";
+import { MENSAGEM_DO_CAPTCHA, useCaptcha } from "@/components/auth/Captcha.tsx";
 import { AvatarDoUsuario } from "@/components/auth/AvatarDoUsuario.tsx";
 import { GoogleIcon } from "@/components/auth/AuthForm.tsx";
 import { VERSAO_DOS_TERMOS } from "@/lib/termos.ts";
@@ -300,6 +301,9 @@ function PainelDeEntrada({
     null,
   );
 
+  // Só o cadastro passa pelo desafio anti-robô (lib/captcha.ts).
+  const captcha = useCaptcha(modo === "cadastrar");
+
   function trocarModo(novo: "entrar" | "cadastrar") {
     mudarEtapa({ ...ETAPA_INICIAL, modo: novo });
     setErro(null);
@@ -324,19 +328,29 @@ function PainelDeEntrada({
       return;
     }
 
+    if (captcha.exigido && !captcha.token) {
+      setErro(MENSAGEM_DO_CAPTCHA);
+      return;
+    }
+
     setEmAndamento("enviar");
 
     const { error } =
       modo === "cadastrar"
-        ? await signUp.email({
-            name: nome.trim(),
-            email,
-            password: senha,
-            termosVersao: VERSAO_DOS_TERMOS,
-          })
+        ? await signUp.email(
+            {
+              name: nome.trim(),
+              email,
+              password: senha,
+              termosVersao: VERSAO_DOS_TERMOS,
+            },
+            { headers: captcha.cabecalhos },
+          )
         : await signIn.email({ email, password: senha });
 
     setEmAndamento(null);
+    // A resposta do desafio vale para uma tentativa só.
+    captcha.reiniciar();
     if (error) {
       // Conta que nunca confirmou o e-mail: o servidor já mandou um código
       // novo (sendOnSignIn), então vai direto para a etapa do código.
@@ -534,6 +548,8 @@ function PainelDeEntrada({
         )}
 
         {cadastrando && <AceiteDosTermos id="menu-termos" compacto />}
+
+        {captcha.elemento}
 
         {erro && (
           <p

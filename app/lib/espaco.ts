@@ -1,4 +1,4 @@
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, inArray } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { area, row, planting, species } from "@/db/schema/index.ts";
 import type { PontoLocal } from "@/core/geo.ts";
@@ -33,7 +33,18 @@ export async function listarAreas(projectId: string): Promise<AreaComLinhas[]> {
 
   if (areas.length === 0) return [];
 
-  const linhas = await db.select().from(row).orderBy(asc(row.ordem));
+  // Só as linhas das áreas deste projeto — sem o filtro, a consulta trazia as
+  // de todos os projetos do banco.
+  const linhas = await db
+    .select()
+    .from(row)
+    .where(
+      inArray(
+        row.areaId,
+        areas.map((registro) => registro.id),
+      ),
+    )
+    .orderBy(asc(row.ordem));
 
   const porArea = new Map<string, AreaComLinhas["linhas"]>();
   for (const linha of linhas) {

@@ -1,12 +1,15 @@
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
-import { emailOTP } from "better-auth/plugins";
+import { APIError, createAuthMiddleware } from "better-auth/api";
+import { captcha, emailOTP } from "better-auth/plugins";
+import { chavesDoCaptcha, ROTAS_COM_CAPTCHA } from "./captcha.ts";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db/index.ts";
 import * as schema from "@/db/schema/index.ts";
 import { VERSAO_DOS_TERMOS } from "./termos.ts";
 import { apagarFotoDePerfil } from "./foto-de-perfil.ts";
+import { apagarMidiasPrivadasDaConta } from "./limpeza-de-midia.ts";
+import { consumir, MENSAGEM_DE_LIMITE, REGRAS } from "./limite-de-taxa.ts";
 import { mascararEmail, registrarErro } from "./observabilidade.ts";
 import {
   enviarEmail,
@@ -22,6 +25,18 @@ import {
  * com NODE_ENV=production e importa este módulo antes de AUTH_SECRET existir.
  * Validar no topo do módulo quebraria o build.
  */
+
+/**
+ * Endpoints que mandam um código por e-mail a pedido, sem sessão: os do plugin
+ * email-otp e o cadastro, que envia o código de confirmação para um endereço
+ * que ninguém ainda provou ter.
+ */
+const ROTAS_QUE_ENVIAM_CODIGO = new Set([
+  "/sign-up/email",
+  "/email-otp/send-verification-otp",
+  "/email-otp/request-password-reset",
+  "/forget-password/email-otp",
+]);
 
 type Auth = ReturnType<typeof criarAuth>;
 
@@ -51,6 +66,9 @@ function criarAuth() {
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const googleConfigurado = Boolean(googleClientId && googleClientSecret);
+
+  // CAPTCHA do cadastro: também opcional (ver lib/captcha.ts).
+  const chavesCaptcha = chavesDoCaptcha();
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -141,9 +159,12 @@ function criarAuth() {
       // sem vínculo com ela — ver a Política de Privacidade.
       deleteUser: {
         enabled: true,
-        // A foto de perfil é dado pessoal: sai do armazenamento junto.
+        // A foto de perfil é dado pessoal: sai do armazenamento junto. As
+        // fotos dos diários dos projetos da pessoa também — o banco apaga as
+        // linhas em cascata, mas não os arquivos.
         beforeDelete: async (usuario) => {
           await apagarFotoDePerfil(usuario.id, usuario.image);
+          await apagarMidiasPrivadasDaConta(usuario.id);
         },
       },
       additionalFields: {
@@ -189,6 +210,11 @@ function criarAuth() {
             return {
               data: {
                 ...novo,
+                // O cadastro via Google traz a foto do perfil de lá como URL
+                // externa. Não entra: foto de perfil aqui é só arquivo
+                // enviado pela pessoa (definirFotoDePerfil), pelo mesmo
+                // motivo do hook de update abaixo — e o CSP nem a exibiria.
+                image: null,
                 termosAceitosEm: novo.termosVersao ? new Date() : undefined,
               },
             };
@@ -230,12 +256,50 @@ function criarAuth() {
       },
     },
 
+    // Teto de códigos por ENDEREÇO, além do limite por IP do plugin. Cada
+    // código aceita 3 tentativas; quem pede códigos sem parar para o e-mail
+    // de outra pessoa ganha 3 palpites por pedido, e o limite por IP não
+    // segura quem troca de IP. Com o teto, a conta-alvo recebe no máximo
+    // `REGRAS.codigoPorEmail` códigos por hora, venham de onde vierem — o que
+    // também impede usar o site para encher a caixa de alguém.
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (!ROTAS_QUE_ENVIAM_CODIGO.has(ctx.path)) return;
+        const email = (ctx.body as { email?: unknown } | undefined)?.email;
+        if (typeof email !== "string") return;
+        if (
+          !consumir(
+            `codigo:${email.trim().toLowerCase()}`,
+            REGRAS.codigoPorEmail,
+          )
+        ) {
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: MENSAGEM_DE_LIMITE,
+            code: "TOO_MANY_CODES",
+          });
+        }
+      }),
+    },
+
     session: {
       expiresIn: 60 * 60 * 24 * 30, // 30 dias
       updateAge: 60 * 60 * 24, // renova a cada 24h de uso
     },
 
     plugins: [
+      // Barra o cadastro em massa por script: o limite por IP não segura
+      // quem troca de IP, e cada conta criada dispara um e-mail. Só o
+      // cadastro: o login já tem limite de tentativas e o Google faz a
+      // própria verificação.
+      ...(chavesCaptcha
+        ? [
+            captcha({
+              provider: "cloudflare-turnstile",
+              secretKey: chavesCaptcha.secretKey,
+              endpoints: ROTAS_COM_CAPTCHA,
+            }),
+          ]
+        : []),
       emailOTP({
         // O padrão do plugin é 3 requisições por minuto **por IP, por
         // endpoint** — aperta demais quem está atrás do mesmo NAT/escritório:

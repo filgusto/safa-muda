@@ -1,4 +1,4 @@
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, inArray } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import {
   event,
@@ -70,7 +70,15 @@ export async function listarEventos(
       alt: media.alt,
     })
     .from(eventMedia)
-    .innerJoin(media, eq(eventMedia.mediaId, media.id));
+    .innerJoin(media, eq(eventMedia.mediaId, media.id))
+    // Só as fotos dos eventos deste projeto — sem o filtro, a consulta trazia
+    // as de todos os projetos do banco.
+    .where(
+      inArray(
+        eventMedia.eventId,
+        linhas.map((linha) => linha.id),
+      ),
+    );
 
   const porEvento = new Map<string, EventoComContexto["fotos"]>();
   for (const foto of fotos) {

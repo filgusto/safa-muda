@@ -354,6 +354,8 @@ export function normalizarCampoDePerfil(
 
 /** O perfil de uma conta, como a tela de /conta o recebe do servidor. */
 export type PerfilDaConta = {
+  /** Falso para quem só entra pelo Google: não há senha para pedir. */
+  temSenha: boolean;
   regiao: string | null;
   perfilDeUso: PerfilDeUso | null;
   perfilDeUsoOutro: string | null;

@@ -140,6 +140,12 @@ services:
       context: ./app
       dockerfile: Dockerfile
       target: runner
+      # Embutidas no bundle do navegador em tempo de build (ver Dockerfile).
+      # Mudou alguma? Reconstrua a imagem: `up -d --build`.
+      args:
+        NEXT_PUBLIC_SATELLITE_TILE_URL: ${NEXT_PUBLIC_SATELLITE_TILE_URL:-}
+        NEXT_PUBLIC_SATELLITE_ATTRIBUTION: ${NEXT_PUBLIC_SATELLITE_ATTRIBUTION:-}
+        NEXT_PUBLIC_SATELLITE_MAX_ZOOM: ${NEXT_PUBLIC_SATELLITE_MAX_ZOOM:-}
     restart: always
     security_opt:
       - no-new-privileges:true
@@ -211,7 +217,18 @@ services:
       - "traefik.http.middlewares.app-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       - "traefik.http.middlewares.app-headers.headers.permissionsPolicy=camera=(), microphone=(), geolocation=()"
       - "traefik.http.middlewares.app-headers.headers.customResponseHeaders.X-Permitted-Cross-Domain-Policies=none"
-      - "traefik.http.middlewares.app-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}; worker-src blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+      # script-src sem 'unsafe-eval': o bundle de produção do Next não usa
+      # eval (só o `next dev` precisa, e a política dele fica em
+      # app/next.config.mjs). Se alguma dependência nova passar a exigir, o
+      # navegador acusa "EvalError"/"unsafe-eval" no console.
+      # challenges.cloudflare.com (script-src e frame-src): desafio anti-robô
+      # do cadastro, quando TURNSTILE_* estão definidas (app/lib/captcha.ts).
+      # img-src: além do próprio site, os tiles do mapa de fundo
+      # (lib/tiles.ts), a prévia de importação do Wikimedia Commons
+      # (components/catalogo/LinkDoWikimedia.tsx) e, se configurado, o provedor
+      # de satélite (SATELLITE_TILE_ORIGIN). Mantenha em sincronia com
+      # app/next.config.mjs, que aplica a mesma política em desenvolvimento.
+      - "traefik.http.middlewares.app-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://upload.wikimedia.org ${SATELLITE_TILE_ORIGIN:-}; font-src 'self' data:; connect-src 'self' https://${S3_PUBLIC_DOMAIN:?defina S3_PUBLIC_DOMAIN no .env.prod}; worker-src blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
       - "traefik.http.routers.app.middlewares=app-headers"
 
 # ── Named volumes ─────────────────────────────────────────────────────────────

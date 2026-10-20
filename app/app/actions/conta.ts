@@ -8,6 +8,7 @@ import { media, speciesRevision, user } from "@/db/schema/index.ts";
 import { auth } from "@/lib/auth.ts";
 import { requireViewer, AccessError } from "@/lib/access.ts";
 import { apagarFotoDePerfil } from "@/lib/foto-de-perfil.ts";
+import { contaTemSenha } from "@/lib/conta.ts";
 import { validarRegiao } from "@/lib/ibge.ts";
 import {
   CAMPOS_DE_PERFIL,
@@ -210,13 +211,17 @@ export async function removerFotoDePerfil(): Promise<Resultado> {
  * Exclui a conta de quem chama, com a senha e a escolha sobre as contribuições
  * já publicadas.
  *
+ * Conta sem senha (cadastro pelo Google) confirma de outro jeito: o Better
+ * Auth só aceita a exclusão sem senha numa sessão recente, então quem entrou
+ * há mais de um dia precisa sair e entrar de novo com o Google antes.
+ *
  * Passa pelo servidor (e não pelo `deleteUser` do navegador) porque a citação
  * precisa ser guardada nas contribuições ANTES de a conta sumir: depois, o
  * vínculo com a pessoa já foi desfeito (`on delete set null`) e não há mais de
  * onde tirar o nome. Se a senha estiver errada, a cópia é desfeita.
  */
 export async function excluirConta(
-  senha: string,
+  senha: string | null,
   destino: string,
 ): Promise<Resultado> {
   try {
@@ -228,7 +233,11 @@ export async function excluirConta(
         erro: "Escolha o que fazer com as suas contribuições.",
       };
     }
-    if (!senha) return { ok: false, erro: "Digite sua senha para confirmar." };
+    // Quem decide se a senha é exigida é o servidor, não o formulário.
+    const temSenha = await contaTemSenha(viewer.id);
+    if (temSenha && !senha) {
+      return { ok: false, erro: "Digite sua senha para confirmar." };
+    }
 
     const [dados] = await db
       .select({
@@ -255,7 +264,7 @@ export async function excluirConta(
 
     try {
       await auth.api.deleteUser({
-        body: { password: senha },
+        body: temSenha ? { password: senha! } : {},
         headers: await headers(),
       });
     } catch (falha) {
@@ -270,6 +279,12 @@ export async function excluirConta(
           : undefined;
       if (codigo === "INVALID_PASSWORD") {
         return { ok: false, erro: "A senha está incorreta." };
+      }
+      if (codigo === "SESSION_EXPIRED") {
+        return {
+          ok: false,
+          erro: "Por segurança, saia e entre de novo com o Google, e então repita a exclusão.",
+        };
       }
       throw falha;
     }
