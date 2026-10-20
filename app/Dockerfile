@@ -1,5 +1,5 @@
 # ─── Stage 1: deps ────────────────────────────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 
 # Install libc compat for native modules
@@ -11,7 +11,7 @@ RUN npm ci --legacy-peer-deps
 # ─── Stage: migrator (applies Drizzle migrations) ─────────────────────────────
 # Precisa do código-fonte e do node_modules para rodar `tsx db/migrate.ts`.
 # O script cria a extensão PostGIS antes de aplicar as migrations.
-FROM node:22-alpine AS migrator
+FROM node:26-alpine AS migrator
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
@@ -25,7 +25,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 CMD ["npm", "run", "db:migrate"]
 
 # ─── Stage: dev (used by docker-compose for local development) ────────────────
-FROM node:22-alpine AS dev
+FROM node:26-alpine AS dev
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
@@ -42,7 +42,7 @@ EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 # ─── Stage 2: builder (for production builds) ─────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -65,7 +65,7 @@ ENV NEXT_PUBLIC_SATELLITE_MAX_ZOOM=$NEXT_PUBLIC_SATELLITE_MAX_ZOOM
 RUN npm run build
 
 # ─── Stage 3: runner (production) ─────────────────────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
