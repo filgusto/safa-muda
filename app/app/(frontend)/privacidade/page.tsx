@@ -110,6 +110,12 @@ export default function PrivacidadePage() {
           Enquanto sua conta existir. Sessões expiram sozinhas após 30 dias sem
           uso. Códigos por e-mail valem 10 minutos.
         </p>
+        <p>
+          Fazemos cópias de segurança diárias, criptografadas quando saem do
+          servidor. O que você apaga (ou a conta inteira) deixa de existir nelas
+          em até 30 dias: as fotos saem na cópia seguinte, e os dados do banco
+          quando a cópia mais antiga que os contém é descartada.
+        </p>
       </SecaoLegal>
 
       <SecaoLegal titulo="7. Seus direitos (art. 18 da LGPD)">

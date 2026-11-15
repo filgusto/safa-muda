@@ -5,6 +5,8 @@ import {
   boolean,
   pgEnum,
   index,
+  integer,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -181,3 +183,16 @@ export const verification = pgTable(
   // Os códigos por e-mail são buscados pelo identificador a cada tentativa.
   (tabela) => [index("verification_identifier_idx").on(tabela.identifier)],
 );
+
+/**
+ * Contadores do limite de taxa do Better Auth (login, cadastro, códigos por
+ * e-mail), com `rateLimit.storage: "database"` em lib/auth.ts. No banco, e não
+ * na memória, para sobreviver a um reinício (senão cada deploy zeraria o
+ * limite de tentativas de senha) e valer para mais de uma instância.
+ */
+export const rateLimit = pgTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});

@@ -555,10 +555,20 @@ function LinhaDoNome({
 }
 
 /**
- * Troca de e-mail em duas etapas: o código vai para o endereço NOVO e só
- * quando ele bate a conta muda. Se o endereço já pertence a outra conta, o
- * servidor responde como se tivesse enviado (para não revelar quem tem
- * conta); o código simplesmente nunca chega.
+ * Troca de e-mail em três etapas, com as duas pontas confirmadas:
+ *
+ *   1. a pessoa informa o endereço novo, e um código vai para o ATUAL;
+ *   2. com o código do atual, o servidor manda outro código para o NOVO;
+ *   3. com o código do novo, a conta muda.
+ *
+ * Confirmar o atual (`verifyCurrentEmail` em lib/auth.ts) impede que quem
+ * pegou uma sessão aberta — computador compartilhado, cookie roubado — troque
+ * o e-mail e, com a recuperação de senha, fique com a conta.
+ *
+ * O código do atual é consumido na etapa 2. Por isso "reenviar" na etapa 3
+ * volta à etapa 2 com um código novo no atual. Se o endereço novo já pertence
+ * a outra conta, o servidor responde como se tivesse enviado (para não revelar
+ * quem tem conta); o código simplesmente nunca chega.
  */
 function FormularioDeTrocaDeEmail({
   email,
@@ -569,7 +579,8 @@ function FormularioDeTrocaDeEmail({
 }) {
   const router = useRouter();
   const [novoEmail, setNovoEmail] = useState("");
-  const [aguardandoPara, setAguardandoPara] = useState<string | null>(null);
+  const [etapa, setEtapa] = useState<"endereco" | "atual" | "novo">("endereco");
+  const [alvo, setAlvo] = useState("");
   const [codigo, setCodigo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -577,23 +588,59 @@ function FormularioDeTrocaDeEmail({
     null,
   );
 
-  async function pedirCodigo(evento: React.FormEvent) {
-    evento.preventDefault();
+  function limparMensagens() {
     setErro(null);
     setAviso(null);
+  }
 
-    const alvo = novoEmail.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(alvo)) {
+  /** Manda (ou reenvia) o código para o e-mail ATUAL da conta. */
+  async function enviarCodigoAoAtual(): Promise<boolean> {
+    setEmAndamento("enviar");
+    const { error } = await emailOtp.sendVerificationOtp({
+      email,
+      type: "email-verification",
+    });
+    setEmAndamento(null);
+    if (error) {
+      setErro(mensagemDeErro(error));
+      return false;
+    }
+    return true;
+  }
+
+  async function informarEndereco(evento: React.FormEvent) {
+    evento.preventDefault();
+    limparMensagens();
+
+    const endereco = novoEmail.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(endereco)) {
       setErro("Informe um e-mail válido.");
       return;
     }
-    if (alvo === email.toLowerCase()) {
+    if (endereco === email.toLowerCase()) {
       setErro("Este já é o e-mail da sua conta.");
       return;
     }
 
-    setEmAndamento("enviar");
-    const { error } = await emailOtp.requestEmailChange({ newEmail: alvo });
+    if (!(await enviarCodigoAoAtual())) return;
+    setAlvo(endereco);
+    setCodigo("");
+    setEtapa("atual");
+  }
+
+  async function confirmarAtual(evento: React.FormEvent) {
+    evento.preventDefault();
+    limparMensagens();
+    if (codigo.trim().length < 6) {
+      setErro("Digite o código de 6 dígitos.");
+      return;
+    }
+
+    setEmAndamento("confirmar");
+    const { error } = await emailOtp.requestEmailChange({
+      newEmail: alvo,
+      otp: codigo.trim(),
+    });
     setEmAndamento(null);
 
     if (error) {
@@ -601,15 +648,12 @@ function FormularioDeTrocaDeEmail({
       return;
     }
     setCodigo("");
-    setAguardandoPara(alvo);
+    setEtapa("novo");
   }
 
-  async function confirmar(evento: React.FormEvent) {
+  async function confirmarNovo(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!aguardandoPara) return;
-    setErro(null);
-    setAviso(null);
-
+    limparMensagens();
     if (codigo.trim().length < 6) {
       setErro("Digite o código de 6 dígitos.");
       return;
@@ -617,7 +661,7 @@ function FormularioDeTrocaDeEmail({
 
     setEmAndamento("confirmar");
     const { error } = await emailOtp.changeEmail({
-      newEmail: aguardandoPara,
+      newEmail: alvo,
       otp: codigo.trim(),
     });
     setEmAndamento(null);
@@ -631,31 +675,28 @@ function FormularioDeTrocaDeEmail({
     // continuaria mostrando o e-mail antigo.
     $store.notify("$sessionSignal");
     router.refresh();
-    aoConcluir(`E-mail alterado para ${aguardandoPara}.`);
+    aoConcluir(`E-mail alterado para ${alvo}.`);
   }
 
   async function reenviar() {
-    if (!aguardandoPara) return;
-    setErro(null);
-    setAviso(null);
-    setEmAndamento("enviar");
-    const { error } = await emailOtp.requestEmailChange({
-      newEmail: aguardandoPara,
-    });
-    setEmAndamento(null);
-
-    if (error) {
-      setErro(mensagemDeErro(error));
+    limparMensagens();
+    if (!(await enviarCodigoAoAtual())) return;
+    setCodigo("");
+    if (etapa === "novo") {
+      // O código do atual já foi gasto: recomeça a confirmação por ele.
+      setEtapa("atual");
+      setAviso(
+        `Para reenviar, confirme de novo pelo e-mail atual: mandamos um código novo para ${email}.`,
+      );
       return;
     }
     setAviso("Enviamos um novo código.");
   }
 
   function voltar() {
-    setAguardandoPara(null);
+    setEtapa("endereco");
     setCodigo("");
-    setErro(null);
-    setAviso(null);
+    limparMensagens();
   }
 
   const mensagens = (
@@ -673,16 +714,34 @@ function FormularioDeTrocaDeEmail({
     </>
   );
 
-  if (aguardandoPara) {
+  if (etapa !== "endereco") {
+    const doAtual = etapa === "atual";
     return (
-      <form onSubmit={confirmar} noValidate className="space-y-5">
+      <form
+        onSubmit={doAtual ? confirmarAtual : confirmarNovo}
+        noValidate
+        className="space-y-5"
+      >
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Etapa {doAtual ? "1" : "2"} de 2
+        </p>
         <p className="text-sm leading-[1.7] text-muted-foreground">
-          Enviamos um código para{" "}
-          <strong className="text-foreground">{aguardandoPara}</strong>. Olhe a
-          caixa de entrada (e o spam) e digite o código abaixo.
+          {doAtual ? (
+            <>
+              Primeiro, confirme que é você: enviamos um código para o e-mail
+              atual, <strong className="text-foreground">{email}</strong>.
+            </>
+          ) : (
+            <>
+              Agora confirme o endereço novo: enviamos um código para{" "}
+              <strong className="text-foreground">{alvo}</strong>.
+            </>
+          )}{" "}
+          Olhe a caixa de entrada (e o spam) e digite o código abaixo.
         </p>
 
         <Campo
+          key={etapa}
           id="conta-email-codigo"
           name="otp"
           label="Código de confirmação"
@@ -708,7 +767,7 @@ function FormularioDeTrocaDeEmail({
           {emAndamento === "confirmar" && (
             <Loader2 size={16} className="mr-2 animate-spin" />
           )}
-          Confirmar novo e-mail
+          {doAtual ? "Continuar" : "Confirmar novo e-mail"}
         </button>
 
         <div className="flex items-center justify-between text-sm">
@@ -734,7 +793,7 @@ function FormularioDeTrocaDeEmail({
   }
 
   return (
-    <form onSubmit={pedirCodigo} noValidate className="space-y-5">
+    <form onSubmit={informarEndereco} noValidate className="space-y-5">
       <Campo
         id="conta-novo-email"
         name="new-email"
@@ -742,7 +801,7 @@ function FormularioDeTrocaDeEmail({
         type="email"
         autoComplete="email"
         autoFocus
-        hint="Vamos enviar um código de confirmação para este endereço."
+        hint="Por segurança, vamos confirmar pelo e-mail atual e depois pelo novo."
         value={novoEmail}
         onChange={(evento) => setNovoEmail(evento.target.value)}
       />

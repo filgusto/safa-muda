@@ -22,12 +22,32 @@ export function problemasDoAmbiente(
     problemas.push("AUTH_SECRET precisa ter pelo menos 32 caracteres.");
   }
 
+  // Meio CAPTCHA é pior que nenhum: com só a chave pública o formulário
+  // mostra o desafio e o servidor não confere; com só a secreta, o servidor
+  // exigiria uma resposta que o formulário não tem como produzir.
+  const semSiteKey = falta("TURNSTILE_SITE_KEY");
+  const semSecretKey = falta("TURNSTILE_SECRET_KEY");
+  if (semSiteKey !== semSecretKey) {
+    problemas.push(
+      "TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY precisam ser definidas juntas.",
+    );
+  }
+
   const url = env.NEXT_PUBLIC_SERVER_URL ?? "";
   if (!url) {
     problemas.push("NEXT_PUBLIC_SERVER_URL não definida.");
     return problemas;
   }
   if (!url.startsWith("https://")) return problemas;
+
+  // Numa instância pública o CAPTCHA deixa de ser opcional: sem ele, um
+  // script cria contas em massa e cada uma dispara um e-mail pelo SMTP do
+  // projeto (reputação do remetente, custo, caixa de terceiros cheia).
+  if (semSiteKey && semSecretKey) {
+    problemas.push(
+      "TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY são obrigatórias numa instância pública (CAPTCHA do cadastro).",
+    );
+  }
 
   for (const nome of [
     "S3_ENDPOINT",
@@ -46,14 +66,6 @@ export function problemasDoAmbiente(
   ) {
     problemas.push(
       "S3_PUBLIC_ENDPOINT precisa ser https: o navegador envia as fotos direto a ele.",
-    );
-  }
-  // Meio CAPTCHA é pior que nenhum: com só a chave pública o formulário
-  // mostra o desafio e o servidor não confere; com só a secreta, o servidor
-  // exigiria uma resposta que o formulário não tem como produzir.
-  if (falta("TURNSTILE_SITE_KEY") !== falta("TURNSTILE_SECRET_KEY")) {
-    problemas.push(
-      "TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY precisam ser definidas juntas.",
     );
   }
   if (/CHANGE_ME/.test(Object.values(env).join(" "))) {

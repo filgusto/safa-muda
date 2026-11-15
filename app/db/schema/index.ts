@@ -13,3 +13,4 @@ export * from "./wiki.ts";
 export * from "./projeto.ts";
 export * from "./espaco.ts";
 export * from "./diario.ts";
+export * from "./limites.ts";

@@ -62,7 +62,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U safa_muda -d safa_muda"
+          --health-cmd "pg_isready -h 127.0.0.1 -U safa_muda -d safa_muda"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -80,6 +80,13 @@ jobs:
 
       - name: Aplicar migrations
         run: npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://safa_muda:senha_ci@localhost:5432/safa_muda
+
+      # Os testes que precisam do Postgres (limite de taxa, com concorrência)
+      # ficam de fora do job de verificação, que roda sem banco.
+      - name: Testes contra o banco
+        run: npx vitest run lib/limite-de-taxa.test.ts
         env:
           DATABASE_URL: postgresql://safa_muda:senha_ci@localhost:5432/safa_muda
 
@@ -114,7 +121,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U safa_muda -d safa_muda"
+          --health-cmd "pg_isready -h 127.0.0.1 -U safa_muda -d safa_muda"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

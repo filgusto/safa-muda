@@ -75,6 +75,9 @@ services:
       GARAGE_APP_KEY_ID: ${GARAGE_APP_KEY_ID:?defina GARAGE_APP_KEY_ID no .env.prod}
       GARAGE_APP_SECRET_KEY: ${GARAGE_APP_SECRET_KEY:?defina GARAGE_APP_SECRET_KEY no .env.prod}
       APP_ORIGIN: ${NEXT_PUBLIC_SERVER_URL:?defina NEXT_PUBLIC_SERVER_URL no .env.prod}
+      # Teto total das fotos, em GB — ver garage/init.mjs. Deixe folga no disco
+      # para o Postgres, os backups locais e as imagens Docker.
+      GARAGE_BUCKET_MAX_GB: ${GARAGE_BUCKET_MAX_GB:-20}
     volumes:
       - ./garage/init.mjs:/garage-init.mjs:ro
     user: node
@@ -93,7 +96,9 @@ services:
     networks:
       - safa-muda-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U safa_muda -d safa_muda"]
+      # -h 127.0.0.1 de propósito: ver o comentário em docker-compose.yml
+      # (servidor temporário de init só no socket Unix na primeira partida).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U safa_muda -d safa_muda"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -208,9 +213,12 @@ services:
       - "traefik.http.services.app.loadbalancer.healthcheck.interval=30s"
 
       # ── Security headers middleware ────────────────────────────────────────
+      # HSTS sem `preload`: a lista de preload dos navegadores vale para o
+      # domínio inteiro e leva meses para desfazer. Entrar nela é decisão de
+      # quem é dono do domínio-raiz, tomada à parte (hstspreload.org).
+      # `includeSubdomains` só cobre subdomínios de TRAEFIK_DOMAIN.
       - "traefik.http.middlewares.app-headers.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.app-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.app-headers.headers.stsPreload=true"
       - "traefik.http.middlewares.app-headers.headers.forceSTSHeader=true"
       - "traefik.http.middlewares.app-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.app-headers.headers.customFrameOptionsValue=SAMEORIGIN"

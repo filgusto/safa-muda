@@ -171,17 +171,28 @@ E2E_BASE_URL=http://localhost:3000 npm run e2e
 ## Produção
 
 1. Aponte `TRAEFIK_DOMAIN` e `S3_PUBLIC_DOMAIN` para o servidor; abra 80/443.
-2. `cp .env.prod.example .env.prod` e preencha todos os `CHANGE_ME_*`.
-3. Primeiro deploy: `./scripts/deploy.sh`
-4. Atualizações: `./scripts/update-app-in-server.sh`
-5. Backups: agende `./scripts/backup-db.sh` no cron. Ele gera um dump do
-   Postgres (`safa_muda_*.dump`) e espelha as fotos do Garage em
-   `$BACKUP_DIR/media`; defina `RCLONE_REMOTE` para copiar tudo para fora do
-   servidor. O `update-app-in-server.sh` roda o backup antes de migrar.
+   As portas precisam estar livres: o deploy não para contêineres de outros
+   projetos.
+2. Crie o widget do CAPTCHA (Cloudflare Turnstile, modo "Managed") para o
+   domínio — é obrigatório numa instância pública.
+3. `cp .env.prod.example .env.prod` e preencha todos os `CHANGE_ME*`.
+4. Primeiro deploy: `./scripts/deploy.sh`
+5. Atualizações: `./scripts/update-app-in-server.sh`
+6. Backups: agende `./scripts/backup-db.sh` no cron (ver o cabeçalho do
+   script). Ele gera um dump do Postgres (`safa_muda_*.dump`, retenção de 30
+   dias) e espelha as fotos do Garage em `$BACKUP_DIR/media`. Para a cópia
+   fora do servidor, defina `RCLONE_REMOTE`, `RCLONE_CONFIG_FILE` e
+   `BACKUP_PASSPHRASE_FILE` no `.env.prod`: tudo sai criptografado, e sem a
+   senha o script recusa enviar. **Guarde a senha também fora do servidor.**
+   O `update-app-in-server.sh` roda o backup antes de migrar.
    **Restore:** `docker compose -f docker-compose.prod.yml exec -T postgres
    pg_restore -U safa_muda -d safa_muda --clean --if-exists < arquivo.dump`;
-   fotos: o mesmo `rclone copy` do script, com origem e destino invertidos. Teste o restore
-   antes de depender dele.
+   da cópia externa, o comando está no comentário do passo 3 do script.
+   Teste o restore antes de depender dele.
+7. Monitoramento: cadastre um monitor externo (UptimeRobot, Better Uptime,
+   Healthchecks…) para `https://SEU_DOMINIO/api/health?deep=1`, a cada 5
+   minutos, com alerta por e-mail. Ele avisa se o site cair, se o banco ou o
+   Garage pararem e se o disco passar de 90% (ver Observabilidade).
 
 > `S3_PUBLIC_DOMAIN` é necessário porque o upload é feito pelo navegador direto
 > no Garage, via URL pré-assinada — e a assinatura SigV4 cobre o cabeçalho Host.
@@ -190,9 +201,14 @@ E2E_BASE_URL=http://localhost:3000 npm run e2e
 
 - **`/api/health`** — checagem rasa (só o banco), usada pelo healthcheck do
   Docker e do Traefik a cada 30s. **`/api/health?deep=1`** também confere o
-  Garage; aponte um monitor externo (UptimeRobot, Better Uptime, um cron com
-  `curl` e alerta) para essa URL, num intervalo de minutos — não a use no
-  healthcheck do load balancer, que roda com frequência demais para isso.
+  Garage e o espaço livre em disco (503 abaixo de `DISCO_LIVRE_MINIMO_PCT`,
+  10% por padrão; os números vão para o log, não para a resposta pública).
+  Aponte um monitor externo para essa URL, num intervalo de minutos — não a
+  use no healthcheck do load balancer, que roda com frequência demais.
+- **Cota de fotos** — o bucket tem teto (`GARAGE_BUCKET_MAX_GB`, 20 GB por
+  padrão). Atingido, novos envios são recusados com aviso claro e o resto do
+  site segue. Para ver o uso:
+  `docker compose -f docker-compose.prod.yml exec garage /garage bucket info safa-muda-media`.
 - **`instrumentation.ts`** recusa a partida em produção com variável obrigatória
   faltando ou com valor de exemplo (ver `lib/ambiente.ts`) — falha rápido, em
   vez de subir e falhar aos poucos no primeiro cadastro ou upload.

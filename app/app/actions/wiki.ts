@@ -146,7 +146,7 @@ export async function minhaRegiao(): Promise<string | null> {
 export async function proporEdicao(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`proposta:${viewer.id}`, REGRAS.proposta)) {
+    if (!(await consumir(`proposta:${viewer.id}`, REGRAS.proposta))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 
@@ -210,7 +210,7 @@ export async function proporEdicao(entrada: unknown): Promise<Resultado> {
 export async function validarEdicao(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`validacao:${viewer.id}`, REGRAS.validacao)) {
+    if (!(await consumir(`validacao:${viewer.id}`, REGRAS.validacao))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 
@@ -258,7 +258,7 @@ export async function proporEdicoesEmLote(
 ): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`proposta:${viewer.id}`, REGRAS.proposta)) {
+    if (!(await consumir(`proposta:${viewer.id}`, REGRAS.proposta))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 
@@ -323,7 +323,7 @@ export async function proporEdicoesEmLote(
 export async function proporNovaEspecie(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`proposta:${viewer.id}`, REGRAS.proposta)) {
+    if (!(await consumir(`proposta:${viewer.id}`, REGRAS.proposta))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 

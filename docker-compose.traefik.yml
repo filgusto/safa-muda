@@ -23,16 +23,50 @@ name: traefik
 
 services:
 
+  # ── Proxy do socket do Docker ────────────────────────────────────────────────
+  # O Traefik é o único contêiner exposto à internet. Com o socket montado
+  # direto nele, uma falha no Traefik viraria controle total do servidor (o
+  # socket do Docker equivale a root, mesmo em :ro). Este proxy só deixa
+  # passar LEITURA da lista de contêineres — o que o Traefik precisa para ler
+  # os labels — e nega o resto (criar, executar, apagar, imagens, volumes…).
+  # Fica numa rede interna, sem saída para fora e sem porta publicada.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    restart: always
+    environment:
+      CONTAINERS: 1   # GET /containers/* — listar e inspecionar
+      POST: 0         # nenhuma escrita
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   traefik:
     image: traefik:v3.6
     restart: always
+    depends_on:
+      - socket-proxy
+    security_opt:
+      - no-new-privileges:true
     command:
-      # ── API / Dashboard (internal only) ─────────────────────────────────────
-      - "--api.dashboard=true"
-      - "--api.insecure=false"
+      # Sem API nem dashboard: ninguém usa, e cada porta administrativa a
+      # menos é uma a menos para proteger. Para inspecionar as rotas, leia
+      # os labels (`docker inspect`) ou ligue o log em DEBUG temporariamente.
 
-      # ── Docker provider ──────────────────────────────────────────────────────
+      # ── Docker provider (via socket-proxy) ───────────────────────────────────
       - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://socket-proxy:2375"
       - "--providers.docker.network=traefik-net"
       - "--providers.docker.exposedbydefault=false"
 
@@ -58,13 +92,12 @@ services:
       - "443:443"
 
     volumes:
-      # Docker socket — allows Traefik to watch container labels
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       # Persist TLS certificates across restarts
       - traefik-letsencrypt:/letsencrypt
 
     networks:
       - traefik-net
+      - socket-proxy
 
     deploy:
       resources:
@@ -83,6 +116,10 @@ networks:
   traefik-net:
     name: traefik-net
     driver: bridge
+  # Só Traefik e socket-proxy; `internal` corta a saída para fora.
+  socket-proxy:
+    driver: bridge
+    internal: true
 
 volumes:
   traefik-letsencrypt:

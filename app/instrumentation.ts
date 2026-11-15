@@ -23,10 +23,11 @@ const UM_DIA_MS = 24 * 60 * 60_000;
 const ESPERA_INICIAL_MS = 10 * 60_000;
 
 /**
- * Varredura diária dos envios abandonados (lib/limpeza-de-midia.ts). Roda no
- * próprio processo porque a instância é uma só e a imagem de produção não
- * leva scripts avulsos; com mais de uma instância, isto deveria virar um job
- * externo. O import é dinâmico para não tocar banco nem S3 na carga do módulo
+ * Varredura diária dos envios abandonados (lib/limpeza-de-midia.ts) e dos
+ * contadores de limite de taxa vencidos (lib/limite-de-taxa.ts). Roda no
+ * próprio processo porque a imagem de produção não leva scripts avulsos. Com
+ * mais de uma instância as duas tarefas continuam corretas (só repetidas):
+ * apagar o que já venceu é idempotente. O import é dinâmico para não tocar banco nem S3 na carga do módulo
  * (ADR 0002), e `unref` impede que o temporizador segure o encerramento.
  */
 function agendarVarreduraDeUploads() {
@@ -44,6 +45,13 @@ function agendarVarreduraDeUploads() {
         }
       } catch (erro) {
         console.error("Falha na varredura de envios abandonados:", erro);
+      }
+      try {
+        const { limparLimitesVencidos } =
+          await import("@/lib/limite-de-taxa.ts");
+        await limparLimitesVencidos();
+      } catch (erro) {
+        console.error("Falha ao limpar os limites de taxa vencidos:", erro);
       }
     }
   };

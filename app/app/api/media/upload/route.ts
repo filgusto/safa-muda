@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     const viewer = await requireViewer();
 
-    if (!consumir(`upload:${viewer.id}`, REGRAS.upload)) {
+    if (!(await consumir(`upload:${viewer.id}`, REGRAS.upload))) {
       return NextResponse.json({ error: MENSAGEM_DE_LIMITE }, { status: 429 });
     }
 

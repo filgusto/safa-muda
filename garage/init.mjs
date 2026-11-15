@@ -27,6 +27,19 @@ const CHAVE = obrigatoria("GARAGE_APP_KEY_ID");
 const SEGREDO = obrigatoria("GARAGE_APP_SECRET_KEY");
 const ORIGEM = new URL(obrigatoria("APP_ORIGIN")).origin;
 
+// Cota do bucket, em GB (10^9 bytes). Teto duro: o limite por usuário
+// (lib/limite-de-taxa.ts) segura o ritmo de cada conta, mas não o total de
+// muitas contas — sem isto, o disco do servidor enche e leva o Postgres
+// junto. "0" desliga. Ao atingir a cota, o Garage recusa novos envios (o
+// navegador mostra a mensagem de lib/enviar-midia.ts); o que já está lá
+// continua sendo servido.
+const COTA_GB = Number(process.env.GARAGE_BUCKET_MAX_GB ?? "20");
+if (!Number.isFinite(COTA_GB) || COTA_GB < 0) {
+  console.error("garage-init: GARAGE_BUCKET_MAX_GB precisa ser um número ≥ 0.");
+  process.exit(1);
+}
+const COTA_BYTES = COTA_GB > 0 ? Math.round(COTA_GB * 1e9) : null;
+
 function obrigatoria(nome) {
   const valor = process.env[nome];
   if (!valor) {
@@ -107,6 +120,7 @@ await admin("UpdateBucket", {
         MaxAgeSeconds: 3600,
       },
     ],
+    quotas: { maxSize: COTA_BYTES, maxObjects: null },
   },
 });
 
@@ -120,5 +134,6 @@ await admin("AllowBucketKey", {
 
 console.log(
   `garage-init: bucket ${BUCKET} pronto — privado, CORS para ${ORIGEM}, ` +
-    `chave ${CHAVE} com leitura e escrita (sem posse do bucket).`,
+    `chave ${CHAVE} com leitura e escrita (sem posse do bucket), ` +
+    `cota ${COTA_BYTES === null ? "desligada" : `de ${COTA_GB} GB`}.`,
 );

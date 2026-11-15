@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { captcha, emailOTP } from "better-auth/plugins";
@@ -36,6 +37,8 @@ const ROTAS_QUE_ENVIAM_CODIGO = new Set([
   "/email-otp/send-verification-otp",
   "/email-otp/request-password-reset",
   "/forget-password/email-otp",
+  // Troca de e-mail: o destino vem em `newEmail` (ver o hook abaixo).
+  "/email-otp/request-email-change",
 ]);
 
 type Auth = ReturnType<typeof criarAuth>;
@@ -78,6 +81,7 @@ function criarAuth() {
         session: schema.session,
         account: schema.account,
         verification: schema.verification,
+        rateLimit: schema.rateLimit,
       },
     }),
     secret,
@@ -107,10 +111,13 @@ function criarAuth() {
       },
     },
 
-    // Limite por IP, em memória (uma instância do web). Ligado explicitamente:
-    // o padrão do Better Auth só liga em NODE_ENV=production.
+    // Limite por IP, guardado no Postgres (tabela rate_limit): sobrevive a
+    // reinício e vale para mais de uma instância. Na memória, cada deploy
+    // zerava o limite de tentativas de senha. Ligado explicitamente: o padrão
+    // do Better Auth só liga em NODE_ENV=production.
     rateLimit: {
       enabled: true,
+      storage: "database",
       // Cobre tudo que não tem regra própria abaixo — inclusive
       // /get-session, chamado a cada navegação. Várias pessoas atrás do
       // mesmo NAT/escritório somam requisições rápido; 100/min era curto
@@ -265,13 +272,15 @@ function criarAuth() {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (!ROTAS_QUE_ENVIAM_CODIGO.has(ctx.path)) return;
-        const email = (ctx.body as { email?: unknown } | undefined)?.email;
+        const corpo = ctx.body as
+          { email?: unknown; newEmail?: unknown } | undefined;
+        const email = corpo?.email ?? corpo?.newEmail;
         if (typeof email !== "string") return;
         if (
-          !consumir(
+          !(await consumir(
             `codigo:${email.trim().toLowerCase()}`,
             REGRAS.codigoPorEmail,
-          )
+          ))
         ) {
           throw new APIError("TOO_MANY_REQUESTS", {
             message: MENSAGEM_DE_LIMITE,
@@ -311,10 +320,11 @@ function criarAuth() {
         // (entrar sem senha, trocar e-mail); com isto, ele passa a responder
         // também pelo emailVerification.sendOnSignUp acima.
         overrideDefaultEmailVerification: true,
-        // Troca de e-mail: o código vai para o endereço NOVO, e só quando ele
-        // bate o e-mail da conta muda. `verifyCurrentEmail` fica desligado —
-        // quem está com a sessão aberta já provou quem é.
-        changeEmail: { enabled: true, verifyCurrentEmail: false },
+        // Troca de e-mail confirmada nas duas pontas: primeiro um código no
+        // endereço ATUAL, depois outro no NOVO (ver FormularioDeTrocaDeEmail).
+        // Só a sessão não basta: quem pegasse uma sessão aberta trocaria o
+        // e-mail e, pela recuperação de senha, ficaria com a conta.
+        changeEmail: { enabled: true, verifyCurrentEmail: true },
         otpLength: 6,
         expiresIn: 60 * 10, // 10 minutos para o usuário checar o e-mail
         sendVerificationOTP: async ({ email, otp, type }) => {
@@ -322,7 +332,14 @@ function criarAuth() {
           // Safa Muda não oferece. Só confirmação de cadastro, recuperação
           // de senha e troca de e-mail deveriam chegar aqui.
           if (type === "email-verification") {
-            await enviarCodigoDeConfirmacao(email, otp);
+            // O mesmo tipo de código serve a dois pedidos: confirmar o
+            // cadastro e, com a conta já confirmada, provar a posse do
+            // e-mail atual antes de trocá-lo. O texto precisa dizer qual.
+            if (await emailJaConfirmado(email)) {
+              await enviarCodigoDeIdentidade(email, otp);
+            } else {
+              await enviarCodigoDeConfirmacao(email, otp);
+            }
             return;
           }
           if (type === "forget-password") {
@@ -417,6 +434,54 @@ async function enviarCodigoDeConfirmacao(email: string, codigo: string) {
   } catch (erro) {
     registrarErro(
       "email.confirmacao_falhou",
+      { para: mascararEmail(email) },
+      erro,
+    );
+  }
+}
+
+async function emailJaConfirmado(email: string): Promise<boolean> {
+  const [registro] = await db
+    .select({ confirmado: schema.user.emailVerified })
+    .from(schema.user)
+    .where(eq(schema.user.email, email.toLowerCase()))
+    .limit(1);
+  return registro?.confirmado ?? false;
+}
+
+/**
+ * Código enviado ao e-mail ATUAL quando alguém pede para trocá-lo. Qualquer
+ * pessoa pode pedir este envio informando o endereço, então o texto não
+ * afirma que a conta está sendo trocada — só explica para que serve e que,
+ * sem o código, nada muda.
+ */
+async function enviarCodigoDeIdentidade(email: string, codigo: string) {
+  const texto = [
+    "Recebemos um pedido para trocar o e-mail da sua conta no Safa Muda.",
+    "Para continuar, confirme que é você com o código abaixo:",
+    "",
+    codigo,
+    "",
+    "Ele vale por 10 minutos. Se não foi você, ignore este e-mail: sem o código, nada muda na conta. Se você não pediu e recebe este aviso com frequência, troque sua senha.",
+  ];
+  try {
+    await enviarEmail({
+      para: email,
+      assunto: `${codigo} · Confirme que é você · Safa Muda`,
+      texto: texto.join("\n"),
+      html: moldeDeEmail(
+        [
+          paragrafoDoEmail(
+            "Recebemos um pedido para trocar o e-mail da sua conta no Safa Muda. Para continuar, confirme que é você com o código abaixo:",
+          ),
+          boxDoCodigo(codigo),
+          paragrafoDoEmail(texto[5]!),
+        ].join(""),
+      ),
+    });
+  } catch (erro) {
+    registrarErro(
+      "email.identidade_falhou",
       { para: mascararEmail(email) },
       erro,
     );

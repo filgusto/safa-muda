@@ -43,7 +43,25 @@ export async function enviarMidia(
   formulario.append("file", arquivo);
 
   const envio = await fetch(upload.url, { method: "POST", body: formulario });
-  if (!envio.ok) throw new Error("Falha ao enviar a imagem.");
+  if (!envio.ok) {
+    const corpo = await envio.text().catch(() => "");
+    throw new Error(mensagemDeFalhaNoEnvio(envio.status, corpo));
+  }
 
   return { mediaId, publicUrl, arquivo };
+}
+
+export const MENSAGEM_DE_ARMAZENAMENTO_CHEIO =
+  "O espaço para fotos do Safa Muda acabou por enquanto. Avise a equipe pelo contato da página de Privacidade.";
+
+/**
+ * Traduz a recusa do Garage. A cota do bucket (garage/init.mjs) chega como
+ * 403 AccessDenied com "quota" na mensagem — o único caso em que vale dizer
+ * algo além de "tente de novo", porque tentar de novo não adianta.
+ */
+export function mensagemDeFalhaNoEnvio(status: number, corpo: string): string {
+  if (status === 403 && /quota/i.test(corpo)) {
+    return MENSAGEM_DE_ARMAZENAMENTO_CHEIO;
+  }
+  return "Falha ao enviar a imagem.";
 }

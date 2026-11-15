@@ -12,6 +12,8 @@ const completo = {
   S3_SECRET_KEY: "segredo",
   SMTP_HOST: "smtp.exemplo.org",
   CONTATO_EMAIL: "contato@safamuda.org.br",
+  TURNSTILE_SITE_KEY: "0x4AAA",
+  TURNSTILE_SECRET_KEY: "0x4BBB",
 };
 
 describe("problemasDoAmbiente", () => {
@@ -62,18 +64,28 @@ describe("problemasDoAmbiente", () => {
     ).toMatch(/NEXT_PUBLIC_SERVER_URL/);
   });
 
-  it("exige as duas chaves do CAPTCHA, ou nenhuma", () => {
-    expect(
-      problemasDoAmbiente({ ...completo, TURNSTILE_SITE_KEY: "0x4AAA" }),
-    ).toEqual([
+  it("exige as duas chaves do CAPTCHA juntas", () => {
+    const { TURNSTILE_SECRET_KEY, ...soAPublica } = completo;
+    void TURNSTILE_SECRET_KEY;
+    expect(problemasDoAmbiente(soAPublica)).toEqual([
       "TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY precisam ser definidas juntas.",
     ]);
+    // Vale também numa instância local: meio CAPTCHA quebra o cadastro.
     expect(
       problemasDoAmbiente({
-        ...completo,
-        TURNSTILE_SITE_KEY: "0x4AAA",
+        DATABASE_URL: "x",
+        AUTH_SECRET: segredo,
+        NEXT_PUBLIC_SERVER_URL: "http://localhost:3000",
         TURNSTILE_SECRET_KEY: "0x4BBB",
-      }),
-    ).toEqual([]);
+      }).join(),
+    ).toMatch(/juntas/);
+  });
+
+  it("numa instância pública o CAPTCHA é obrigatório", () => {
+    const { TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, ...semCaptcha } =
+      completo;
+    void TURNSTILE_SITE_KEY;
+    void TURNSTILE_SECRET_KEY;
+    expect(problemasDoAmbiente(semCaptcha).join()).toMatch(/obrigatórias/);
   });
 });

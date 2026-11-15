@@ -1,11 +1,11 @@
 /**
  * CAPTCHA do cadastro (Cloudflare Turnstile).
  *
- * Opcional: sem as duas chaves a aplicação sobe e o cadastro funciona sem o
- * desafio — requisito de um projeto que qualquer pessoa deve conseguir rodar
- * (e é como a CI e o desenvolvimento local rodam). Numa instância pública,
- * configure: sem ele, um script cria contas em massa e cada uma dispara um
- * e-mail de confirmação pelo seu SMTP.
+ * Opcional em instância local (http): sem as duas chaves o cadastro funciona
+ * sem o desafio — é como a CI e o desenvolvimento rodam. Numa instância
+ * pública (https) é obrigatório: lib/ambiente.ts recusa a partida sem ele,
+ * porque um script criaria contas em massa e cada uma dispararia um e-mail de
+ * confirmação pelo SMTP do projeto.
  *
  *   TURNSTILE_SITE_KEY    pública; vai ao navegador por /api/captcha
  *   TURNSTILE_SECRET_KEY  só no servidor; confere a resposta com a Cloudflare

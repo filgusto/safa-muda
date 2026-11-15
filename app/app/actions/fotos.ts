@@ -108,7 +108,7 @@ async function criarSpeciesFoto(params: {
 export async function adicionarFoto(entrada: unknown): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`foto:${viewer.id}`, REGRAS.proposta)) {
+    if (!(await consumir(`foto:${viewer.id}`, REGRAS.proposta))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 
@@ -180,7 +180,7 @@ export async function buscarPreviaDoWikimedia(
 ): Promise<ResultadoDePrevia> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`previa:${viewer.id}`, REGRAS.importacao)) {
+    if (!(await consumir(`previa:${viewer.id}`, REGRAS.importacao))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 
@@ -235,7 +235,7 @@ export async function importarFotoDoWikimedia(
 ): Promise<Resultado> {
   try {
     const viewer = await requireViewer();
-    if (!consumir(`importacao:${viewer.id}`, REGRAS.importacao)) {
+    if (!(await consumir(`importacao:${viewer.id}`, REGRAS.importacao))) {
       return { ok: false, erro: MENSAGEM_DE_LIMITE };
     }
 

@@ -54,7 +54,7 @@ docker compose version &>/dev/null || fail "Docker Compose plugin is not install
 # Validate required vars exist and have no placeholder values
 for var in NEXT_PUBLIC_SERVER_URL AUTH_SECRET POSTGRES_PASSWORD S3_PUBLIC_DOMAIN \
            GARAGE_RPC_SECRET GARAGE_ADMIN_TOKEN GARAGE_APP_KEY_ID GARAGE_APP_SECRET_KEY TRAEFIK_DOMAIN TRAEFIK_ACME_EMAIL \
-           SMTP_HOST SMTP_FROM CONTATO_EMAIL; do
+           SMTP_HOST SMTP_FROM CONTATO_EMAIL TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY; do
     val="$(get_env "$var")"
     [[ -n "$val" ]]               || fail "$var is not set in .env.prod"
     [[ "$val" != *"CHANGE_ME"* ]] || fail "$var still has a placeholder value — set a real value in .env.prod"
@@ -82,21 +82,17 @@ log "Now at commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
 # ── Step 2: Traefik infrastructure ───────────────────────────────────────────
 step "Setting up Traefik infrastructure"
 
-# If the new traefik project is already running correctly, nothing to do.
-if docker compose -f "$COMPOSE_TRAEFIK" ps --status running 2>/dev/null | grep -q "traefik"; then
-    log "Traefik is already running — skipping."
-else
+if ! docker compose -f "$COMPOSE_TRAEFIK" ps --status running -q traefik 2>/dev/null | grep -q .; then
     # ── Clean up any stale state that would block Traefik from starting ────────
     #
-    # Case 1: A container (old Traefik from any project) is still holding
-    #         ports 80 or 443. Stop and remove it so the bind succeeds.
+    # Case 1: Another container is holding ports 80 or 443. It is NOT stopped
+    #         automatically: on a server that hosts other projects that would
+    #         take someone else's site down. Abort and let a human decide.
     for port in 80 443; do
         old_id=$(docker ps --filter "publish=${port}" -q 2>/dev/null | head -1)
         if [[ -n "$old_id" ]]; then
             old_name=$(docker inspect --format '{{.Name}}' "$old_id" | tr -d '/')
-            log "Port ${port} is held by container '${old_name}' — stopping it …"
-            docker stop "$old_id" 2>/dev/null || true
-            docker rm   "$old_id" 2>/dev/null || true
+            fail "A porta ${port} está ocupada pelo contêiner '${old_name}'. Se ele pode sair, pare-o (docker stop ${old_name}) e rode o deploy de novo; se é de outro projeto, este servidor precisa de um proxy compartilhado."
         fi
     done
 
@@ -118,11 +114,14 @@ else
             docker network rm traefik-net 2>/dev/null || true
         fi
     fi
-
-    log "Starting Traefik …"
-    docker compose -f "$COMPOSE_TRAEFIK" up -d
-    log "Traefik is up."
 fi
+
+# Sempre aplica: `up -d` é idempotente e recria o que mudou no compose (por
+# exemplo, um servidor antigo passa a usar o socket-proxy). Antes, um Traefik
+# já rodando fazia este passo ser pulado e a configuração nova nunca entrava.
+log "Applying Traefik configuration …"
+docker compose -f "$COMPOSE_TRAEFIK" up -d --remove-orphans
+log "Traefik is up."
 
 # ── Step 3: Build application images ─────────────────────────────────────────
 step "Building application images (migrator + runner)"
@@ -136,7 +135,7 @@ docker compose -f "$COMPOSE_APP" up -d postgres garage
 log "Waiting for PostgreSQL to be healthy …"
 ELAPSED=0
 until docker compose -f "$COMPOSE_APP" exec -T postgres \
-        pg_isready -U safa_muda -d safa_muda &>/dev/null; do
+        pg_isready -h 127.0.0.1 -U safa_muda -d safa_muda &>/dev/null; do
     if [[ $ELAPSED -ge 60 ]]; then
         fail "PostgreSQL did not become healthy within 60s. Check: docker compose -f docker-compose.prod.yml logs postgres"
     fi
